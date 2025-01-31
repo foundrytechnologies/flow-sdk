@@ -176,7 +176,9 @@ class TestBidManagerIntegration(unittest.TestCase):
         timestamp_str = time.strftime("%Y%m%d%H%M%S")
         unique_hex = secrets.token_hex(4)
         rand_tail = "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
-        order_name = f"test-bid-{uuid.uuid4()}-{int(time.time())}-{secrets.token_hex(2)}"
+        order_name = (
+            f"test-bid-{uuid.uuid4()}-{int(time.time())}-{secrets.token_hex(2)}"
+        )
         self.logger.debug(f"Using order name: {order_name}")
 
         try:
@@ -260,7 +262,9 @@ class TestBidManagerIntegration(unittest.TestCase):
         instance_quantity = 1
         limit_price_cents = 10000
         startup_script = "#!/bin/bash\necho 'Hello World'"
-        order_name = f"test-bid-{uuid.uuid4()}-{int(time.time())}-{secrets.token_hex(2)}"
+        order_name = (
+            f"test-bid-{uuid.uuid4()}-{int(time.time())}-{secrets.token_hex(2)}"
+        )
         self.logger.debug(f"Using order name: {order_name}")
 
         try:

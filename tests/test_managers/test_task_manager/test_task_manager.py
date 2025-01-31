@@ -118,9 +118,7 @@ class TestFlowTaskManager(unittest.TestCase):
 
         # Real managers with the mocked FoundryClient
         self.auction_finder = AuctionFinder(
-            foundry_client=self.foundry_client,
-            logger_obj=None,
-            local_catalog_path=None
+            foundry_client=self.foundry_client, logger_obj=None, local_catalog_path=None
         )
         self.bid_manager = BidManager(self.foundry_client)
         self.instance_manager = InstanceManager(self.foundry_client)
@@ -368,7 +366,7 @@ class TestFlowTaskManager(unittest.TestCase):
             region_id="eu-central1-a",
         )
         self.foundry_client.get_auctions.return_value = [mock_auction]
-        
+
         # Replace the entire resources specification instead of using update()
         self.config.resources_specification = ResourcesSpecification(
             fcp_instance="a100.2x.SXM4.IB",
@@ -377,7 +375,7 @@ class TestFlowTaskManager(unittest.TestCase):
             internode_interconnect="IB_1600",
             region="eu-central1-a",
             num_instances=1,  # Maintain required fields
-            num_gpus=1        # From original config
+            num_gpus=1,  # From original config
         )
 
         matching_auctions = self.task_manager._find_matching_auctions(
@@ -544,7 +542,7 @@ class TestFlowTaskManager(unittest.TestCase):
                 gpu_type="a40",
                 inventory_quantity=8,
                 num_gpus=8,
-                intranode_interconnect="PCIe", 
+                intranode_interconnect="PCIe",
                 internode_interconnect="100G_DCN",
                 region_id="us-central1-a",
             ),
@@ -642,7 +640,7 @@ class TestFlowTaskManager(unittest.TestCase):
                 gpu_type="a40",
                 inventory_quantity=8,
                 num_gpus=8,
-                intranode_interconnect="PCIe", 
+                intranode_interconnect="PCIe",
                 internode_interconnect="100G_DCN",
                 region_id="us-central1-a",
             ),

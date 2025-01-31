@@ -107,7 +107,7 @@ class AuctionMatcher:
                 auction,
                 "\n  - ".join(
                     f"{check['name']}: {check['detail']}" for check in failing_checks
-                )
+                ),
             )
             return False
 
@@ -119,7 +119,7 @@ class AuctionMatcher:
             return {
                 "name": "GPU Type",
                 "passed": True,
-                "detail": "No GPU type specified in criteria; skipping check."
+                "detail": "No GPU type specified in criteria; skipping check.",
             }
 
         expected = self._criteria.gpu_type.strip().lower()
@@ -129,15 +129,11 @@ class AuctionMatcher:
         passed = bool(re.search(pattern, actual))
         detail = (
             f"Expected GPU type to match '{self._criteria.gpu_type}' but got '{auction.gpu_type}'."
-            if not passed else
-            f"GPU type '{auction.gpu_type}' matches expected pattern '{self._criteria.gpu_type}'."
+            if not passed
+            else f"GPU type '{auction.gpu_type}' matches expected pattern '{self._criteria.gpu_type}'."
         )
 
-        return {
-            "name": "GPU Type",
-            "passed": passed,
-            "detail": detail
-        }
+        return {"name": "GPU Type", "passed": passed, "detail": detail}
 
     def _check_num_gpus(self, auction: Auction) -> dict:
         """Checks if the auction has at least the requested number of GPUs."""
@@ -145,7 +141,7 @@ class AuctionMatcher:
             return {
                 "name": "Number of GPUs",
                 "passed": True,
-                "detail": "No GPU count specified in criteria; skipping check."
+                "detail": "No GPU count specified in criteria; skipping check.",
             }
 
         actual_gpus = auction.inventory_quantity or 0
@@ -154,15 +150,11 @@ class AuctionMatcher:
 
         detail = (
             f"Needed >= {required_gpus} GPUs, but auction has {actual_gpus}."
-            if not passed else
-            f"Auction has {actual_gpus} GPUs, which meets or exceeds the required {required_gpus}."
+            if not passed
+            else f"Auction has {actual_gpus} GPUs, which meets or exceeds the required {required_gpus}."
         )
 
-        return {
-            "name": "Number of GPUs",
-            "passed": passed,
-            "detail": detail
-        }
+        return {"name": "Number of GPUs", "passed": passed, "detail": detail}
 
     def _check_internode_interconnect(self, auction: Auction) -> dict:
         """Checks if the inter-node interconnect matches, if specified."""
@@ -170,24 +162,20 @@ class AuctionMatcher:
             return {
                 "name": "Inter-node Interconnect",
                 "passed": True,
-                "detail": "No inter-node interconnect specified; skipping check."
+                "detail": "No inter-node interconnect specified; skipping check.",
             }
 
         expected = self._criteria.internode_interconnect.lower()
         actual = (auction.internode_interconnect or "").lower()
-        passed = (actual == expected)
+        passed = actual == expected
 
         detail = (
             f"Expected inter-node '{self._criteria.internode_interconnect}' but got '{auction.internode_interconnect}'."
-            if not passed else
-            f"Inter-node interconnect '{auction.internode_interconnect}' matches '{self._criteria.internode_interconnect}'."
+            if not passed
+            else f"Inter-node interconnect '{auction.internode_interconnect}' matches '{self._criteria.internode_interconnect}'."
         )
 
-        return {
-            "name": "Inter-node Interconnect",
-            "passed": passed,
-            "detail": detail
-        }
+        return {"name": "Inter-node Interconnect", "passed": passed, "detail": detail}
 
     def _check_intranode_interconnect(self, auction: Auction) -> dict:
         """Checks if the intra-node interconnect matches, if specified."""
@@ -195,24 +183,20 @@ class AuctionMatcher:
             return {
                 "name": "Intra-node Interconnect",
                 "passed": True,
-                "detail": "No intra-node interconnect specified; skipping check."
+                "detail": "No intra-node interconnect specified; skipping check.",
             }
 
         expected = self._criteria.intranode_interconnect.lower()
         actual = (auction.intranode_interconnect or "").lower()
-        passed = (actual == expected)
+        passed = actual == expected
 
         detail = (
             f"Expected intra-node '{self._criteria.intranode_interconnect}' but got '{auction.intranode_interconnect}'."
-            if not passed else
-            f"Intra-node interconnect '{auction.intranode_interconnect}' matches '{self._criteria.intranode_interconnect}'."
+            if not passed
+            else f"Intra-node interconnect '{auction.intranode_interconnect}' matches '{self._criteria.intranode_interconnect}'."
         )
 
-        return {
-            "name": "Intra-node Interconnect",
-            "passed": passed,
-            "detail": detail
-        }
+        return {"name": "Intra-node Interconnect", "passed": passed, "detail": detail}
 
     def _check_fcp_instance(self, auction: Auction) -> dict:
         """Checks if FCP instance matches exactly (case-sensitive) if specified."""
@@ -220,21 +204,17 @@ class AuctionMatcher:
             return {
                 "name": "FCP Instance",
                 "passed": True,
-                "detail": "No FCP instance specified; skipping check."
+                "detail": "No FCP instance specified; skipping check.",
             }
 
-        passed = (auction.fcp_instance == self._criteria.fcp_instance)
+        passed = auction.fcp_instance == self._criteria.fcp_instance
         detail = (
             f"Expected FCP instance '{self._criteria.fcp_instance}' but got '{auction.fcp_instance}'."
-            if not passed else
-            f"FCP instance '{auction.fcp_instance}' matches '{self._criteria.fcp_instance}'."
+            if not passed
+            else f"FCP instance '{auction.fcp_instance}' matches '{self._criteria.fcp_instance}'."
         )
 
-        return {
-            "name": "FCP Instance",
-            "passed": passed,
-            "detail": detail
-        }
+        return {"name": "FCP Instance", "passed": passed, "detail": detail}
 
 
 class AuctionFinder:
@@ -260,7 +240,9 @@ class AuctionFinder:
         """
         self._foundry_client = foundry_client
         self._logger = logger_obj or logger
-        self.default_local_catalog_path = Path(__file__).parents[3] / "fcp_auction_catalog.yaml"
+        self.default_local_catalog_path = (
+            Path(__file__).parents[3] / "fcp_auction_catalog.yaml"
+        )
 
         if local_catalog_path is not None:
             self.local_catalog_path = Path(local_catalog_path)
@@ -269,20 +251,28 @@ class AuctionFinder:
 
         # Optional debug so we see what's happening:
         if self.default_local_catalog_path.exists():
-            self._logger.debug("Default local catalog path: %s (exists=%s)", 
-                               self.default_local_catalog_path, 
-                               self.default_local_catalog_path.exists())
+            self._logger.debug(
+                "Default local catalog path: %s (exists=%s)",
+                self.default_local_catalog_path,
+                self.default_local_catalog_path.exists(),
+            )
         else:
-            self._logger.debug("Default local catalog not found at: %s", 
-                               self.default_local_catalog_path)
+            self._logger.debug(
+                "Default local catalog not found at: %s",
+                self.default_local_catalog_path,
+            )
 
         # If local_catalog_path was passed to constructor, attempt to load it now
         if self.local_catalog_path is not None:
-            self._logger.debug("Constructor using local_catalog_path=%s", self.local_catalog_path)
+            self._logger.debug(
+                "Constructor using local_catalog_path=%s", self.local_catalog_path
+            )
             self._load_instance_catalog()
         else:
             # Not specifying here. We'll rely on fetch_auctions() to pick up default
-            self._logger.debug("No local_catalog_path specified to constructor; will try default later.")
+            self._logger.debug(
+                "No local_catalog_path specified to constructor; will try default later."
+            )
 
         self._instance_catalog: Dict[str, Any] = {}
 
@@ -317,7 +307,9 @@ class AuctionFinder:
 
         # Possibly fetch from Foundry
         if project_id:
-            self._logger.info("Fetching auctions from Foundry for project_id=%s.", project_id)
+            self._logger.info(
+                "Fetching auctions from Foundry for project_id=%s.", project_id
+            )
             auctions_from_foundry = self._foundry_client.get_auctions(
                 project_id=project_id
             )
@@ -333,15 +325,20 @@ class AuctionFinder:
             auctions_from_local = self._load_auctions_from_local_catalog(
                 catalog_path=local_catalog_path
             )
-            self._logger.info("Local catalog has %d auctions total.", len(auctions_from_local))
+            self._logger.info(
+                "Local catalog has %d auctions total.", len(auctions_from_local)
+            )
         elif self.default_local_catalog_path.exists():
             self._logger.info(
-                "Loading auctions from default local catalog at '%s'.", self.default_local_catalog_path
+                "Loading auctions from default local catalog at '%s'.",
+                self.default_local_catalog_path,
             )
             auctions_from_local = self._load_auctions_from_local_catalog(
                 catalog_path=self.default_local_catalog_path
             )
-            self._logger.info("Default local catalog has %d auctions total.", len(auctions_from_local))
+            self._logger.info(
+                "Default local catalog has %d auctions total.", len(auctions_from_local)
+            )
         else:
             self._logger.info("No local catalog provided.")
 
@@ -382,7 +379,9 @@ class AuctionFinder:
         )
 
         matcher = AuctionMatcher(criteria=criteria, logger_obj=self._logger)
-        matching_auctions = [auction for auction in auctions if matcher.matches(auction)]
+        matching_auctions = [
+            auction for auction in auctions if matcher.matches(auction)
+        ]
 
         self._logger.debug(
             "Found %d matching auctions (of %d total).",
@@ -538,8 +537,12 @@ class AuctionFinder:
                 "gpu_type": base_auction_dict.get("gpu_type"),
                 "inventory_quantity": base_auction_dict.get("inventory_quantity"),
                 "num_gpu": base_auction_dict.get("num_gpu"),
-                "intranode_interconnect": base_auction_dict.get("intranode_interconnect"),
-                "internode_interconnect": base_auction_dict.get("internode_interconnect"),
+                "intranode_interconnect": base_auction_dict.get(
+                    "intranode_interconnect"
+                ),
+                "internode_interconnect": base_auction_dict.get(
+                    "internode_interconnect"
+                ),
                 "fcp_instance": base_auction_dict.get("fcp_instance"),
                 "instance_type_id": base_auction_dict.get("instance_type_id"),
                 "last_price": base_auction_dict.get("last_price"),
@@ -601,9 +604,7 @@ class AuctionFinder:
 
             # Merge: fill missing Foundry fields with local data
             merged = Auction(
-                cluster_id=(
-                    foundry_auction.cluster_id or local_match.cluster_id
-                ),
+                cluster_id=(foundry_auction.cluster_id or local_match.cluster_id),
                 gpu_type=foundry_auction.gpu_type or local_match.gpu_type,
                 inventory_quantity=(
                     foundry_auction.inventory_quantity
@@ -619,9 +620,7 @@ class AuctionFinder:
                     foundry_auction.internode_interconnect
                     or local_match.internode_interconnect
                 ),
-                fcp_instance=(
-                    foundry_auction.fcp_instance or local_match.fcp_instance
-                ),
+                fcp_instance=(foundry_auction.fcp_instance or local_match.fcp_instance),
                 instance_type_id=foundry_auction.instance_type_id,  # keep Foundry's
                 last_price=foundry_auction.last_price or local_match.last_price,
                 region=foundry_auction.region or local_match.region,

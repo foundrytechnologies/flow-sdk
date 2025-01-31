@@ -54,15 +54,17 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
 
         original_name = config_data.get("name", "flow-task")
         config_data["name"] = f"{original_name}-test-{self.random_suffix}"
-        config_data["resources_specification"].update({
-            "fcp_instance": "h100.8x.SXM5.IB",
-            "gpu_type": "NVIDIA H100",
-            "num_gpus": 8,
-            "num_instances": 1,
-            "intranode_interconnect": "SXM5",
-            "internode_interconnect": "IB_1600",
-            "instance_type_id": "46e17546-847a-40b8-928b-1a3388338f0f"
-        })
+        config_data["resources_specification"].update(
+            {
+                "fcp_instance": "h100.8x.SXM5.IB",
+                "gpu_type": "NVIDIA H100",
+                "num_gpus": 8,
+                "num_instances": 1,
+                "intranode_interconnect": "SXM5",
+                "internode_interconnect": "IB_1600",
+                "instance_type_id": "46e17546-847a-40b8-928b-1a3388338f0f",
+            }
+        )
 
         print("\nUsing resource specifications:")
         print(json.dumps(config_data["resources_specification"], indent=2))
@@ -114,7 +116,7 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
         )
         self.auction_finder = AuctionFinder(
             foundry_client=self.foundry_client,
-            local_catalog_path=self.default_test_catalog
+            local_catalog_path=self.default_test_catalog,
         )
         self.bid_manager = BidManager(self.foundry_client)
 
@@ -148,12 +150,11 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
 
         # Get and augment auctions
         auctions = self.auction_finder.fetch_auctions(
-            project_id=self.project_id,
-            local_catalog_path=self.default_test_catalog
+            project_id=self.project_id, local_catalog_path=self.default_test_catalog
         )
-        
+
         # New debug logging for raw auctions
-        self.logger.debug('Fetched auctions:')
+        self.logger.debug("Fetched auctions:")
         for auction in auctions:
             self.logger.debug(
                 "Auction ID: %s, GPU: %s, Instance Type: %s, Region: %s, FCP Instance: %s",
@@ -161,7 +162,7 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
                 auction.gpu_type,
                 auction.instance_type_id,
                 auction.region,
-                getattr(auction, 'fcp_instance', 'MISSING')
+                getattr(auction, "fcp_instance", "MISSING"),
             )
 
         # Check for matches against the criteria
@@ -169,14 +170,11 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
             auctions=auctions,
             criteria=self.config_parser.config.resources_specification,
         )
-        
+
         # New debug logging for augmented auctions
         self.logger.debug("Augmented auctions after processing:")
         for auction in matching_auctions:
-            self.logger.debug(
-                "Augmented Auction: %s",
-                auction.model_dump()
-            )
+            self.logger.debug("Augmented Auction: %s", auction.model_dump())
 
         self.logger.debug("Matching auctions after criteria check:")
         for auction in matching_auctions:
@@ -188,12 +186,12 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
                 auction.gpu_type,
                 auction.num_gpus,
                 auction.intranode_interconnect,
-                auction.internode_interconnect
+                auction.internode_interconnect,
             )
 
         self.assertGreater(len(matching_auctions), 0, "No matching auctions found")
         matching_auction = matching_auctions[0]
-        
+
         # New: Log full details of selected auction
         self.logger.debug("Selected matching auction full details:")
         for k, v in matching_auction.model_dump().items():
@@ -202,7 +200,7 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
         # Replace the hardcoded region with catalog-aligned value
         region_val = matching_auction.region  # Use region from matched auction
         print(f"Using auction's region: {region_val} for alignment")
-        
+
         self.config_parser.config.persistent_storage.create = (
             self.config_parser.config.persistent_storage.create.model_copy(
                 update={"region_id": region_val}
@@ -282,5 +280,5 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
                 auction.id,
                 auction.fcp_instance,
                 auction.intranode_interconnect,
-                auction.internode_interconnect
+                auction.internode_interconnect,
             )

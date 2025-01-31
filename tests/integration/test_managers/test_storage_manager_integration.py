@@ -113,7 +113,7 @@ class TestStorageManagerIntegration:
         assert region_id in [
             "us-central1-a",
             "eu-central1-a",
-            "na-east1-b"
+            "na-east1-b",
         ], f"Unexpected region_id: {region_id}"
 
     def test_handle_persistent_storage_create_and_cleanup(

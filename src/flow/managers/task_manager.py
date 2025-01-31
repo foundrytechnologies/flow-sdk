@@ -364,9 +364,7 @@ class FlowTaskManager:
             disk_attachments: Optional list of existing disk attachments.
         """
         if not matching_auctions:
-            self.logger.error(
-                "No matching auctions available for bid submission."
-            )
+            self.logger.error("No matching auctions available for bid submission.")
             raise NoMatchingAuctionsError(
                 "No matching auctions available to submit bid. "
                 "As a quick fix, override by specifying the instance_id associated "
