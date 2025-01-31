@@ -47,5 +47,5 @@ class BidDiskAttachment(BaseModel):
         """
         return cls(
             disk_id=disk_attachment.disk_id,
-            volume_name=disk_attachment.volume_name,
+            volume_name=disk_attachment.volume_name or disk_attachment.name,
         )

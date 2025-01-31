@@ -1,5 +1,6 @@
-# Generated in realtime / dynamically from the src/flow/scripts/generate_catalogue.py script.
-# This file can be a reference, but will be tied to the YAML parsing to allow fcp_instance shorthand parsing.
+# Auction catalog for FCP
+# 
+# For each GPU type and region, one or more auctions are defined.
 
 # --------------------------------------------------------------------
 # NVIDIA A100
@@ -7,29 +8,29 @@
 nvidia a100:
   eu-central1-a:
   - base_auction:
-      fcp_instance: 'a100-80gb.sxm4'
-      gpu_type: NVIDIA A100
+      fcp_instance: "a100.2x.SXM4.IB"
+      gpu_type: "NVIDIA A100"
+      intranode_interconnect: "SXM4"
+      internode_interconnect: "IB_1600"
+      instance_type_id: "310f6808-8b25-4a45-9147-69b0ed0e32f4"
+      resource_specification_id: "14266c6d-c15a-4c30-876c-6f7793c721b0"
+      region: "eu-central1-a"
       id: c158bc95-53db-4f9a-9b7d-7e702d07fdf3
-      instance_type_id: 310f6808-8b25-4a45-9147-69b0ed0e32f4
-      internode_interconnect: IB_1600
-      intranode_interconnect: SXM4
       inventory_quantity: 23
       last_price: 1.32
       num_gpu: 2
-      region: eu-central1-a
-      resource_specification_id: 14266c6d-c15a-4c30-876c-6f7793c721b0
     detailed_instance_data:
       architecture: SXM4
       id: 310f6808-8b25-4a45-9147-69b0ed0e32f4
       memory_gb: 450
-      name: 'a100-80gb.sxm4'
+      name: 'a100.2x.SXM4.IB'
       num_cpus: 48
       num_gpus: 2
-    instance_type_info: 'Details for instance type: 310f6808-8b25-4a45-9147-69b0ed0e32f4'
-    region_info: 'Detailed region info for: eu-central1-a'
-    resource_spec_info: Spec details for resource_spec_id=14266c6d-c15a-4c30-876c-6f7793c721b0
+    instance_type_info: null
+    region_info: null
+    resource_spec_info: null
   - base_auction:
-      fcp_instance: 'a100-80gb.sxm4'
+      fcp_instance: 'a100.1x.SXM4.IB'
       gpu_type: NVIDIA A100
       id: c158bc95-53db-4f9a-9b7d-7e702d07fdf3
       instance_type_id: 49b6f997-05c7-4780-a42b-bc54ab0e4a96
@@ -44,14 +45,14 @@ nvidia a100:
       architecture: SXM4
       id: 49b6f997-05c7-4780-a42b-bc54ab0e4a96
       memory_gb: 225
-      name: 'a100-80gb.sxm4'
+      name: 'a100.1x.SXM4.IB'
       num_cpus: 24
       num_gpus: 1
-    instance_type_info: 'Details for instance type: 49b6f997-05c7-4780-a42b-bc54ab0e4a96'
-    region_info: 'Detailed region info for: eu-central1-a'
-    resource_spec_info: Spec details for resource_spec_id=14266c6d-c15a-4c30-876c-6f7793c721b0
+    instance_type_info: null
+    region_info: null
+    resource_spec_info: null
   - base_auction:
-      fcp_instance: 'a100-80gb.sxm4'
+      fcp_instance: 'a100.8x.SXM4.IB'
       gpu_type: NVIDIA A100
       id: c158bc95-53db-4f9a-9b7d-7e702d07fdf3
       instance_type_id: 61a847da-b0b7-420c-8496-cc637a59b046
@@ -66,14 +67,14 @@ nvidia a100:
       architecture: SXM4
       id: 61a847da-b0b7-420c-8496-cc637a59b046
       memory_gb: 1800
-      name: 'a100-80gb.sxm4'
+      name: 'a100.8x.SXM4.IB'
       num_cpus: 192
       num_gpus: 8
-    instance_type_info: 'Details for instance type: 61a847da-b0b7-420c-8496-cc637a59b046'
-    region_info: 'Detailed region info for: eu-central1-a'
-    resource_spec_info: Spec details for resource_spec_id=14266c6d-c15a-4c30-876c-6f7793c721b0
+    instance_type_info: null
+    region_info: null
+    resource_spec_info: null
   - base_auction:
-      fcp_instance: 'a100-80gb.sxm4'
+      fcp_instance: 'a100.4x.SXM4.IB'
       gpu_type: NVIDIA A100
       id: c158bc95-53db-4f9a-9b7d-7e702d07fdf3
       instance_type_id: 7f47806f-1bfe-489d-95cb-1c1724bbe9e4
@@ -88,12 +89,12 @@ nvidia a100:
       architecture: SXM4
       id: 7f47806f-1bfe-489d-95cb-1c1724bbe9e4
       memory_gb: 900
-      name: 'a100-80gb.sxm4'
+      name: 'a100.4x.SXM4.IB'
       num_cpus: 96
       num_gpus: 4
-    instance_type_info: 'Details for instance type: 7f47806f-1bfe-489d-95cb-1c1724bbe9e4'
-    region_info: 'Detailed region info for: eu-central1-a'
-    resource_spec_info: Spec details for resource_spec_id=14266c6d-c15a-4c30-876c-6f7793c721b0
+    instance_type_info: null
+    region_info: null
+    resource_spec_info: null
 
 # --------------------------------------------------------------------
 # NVIDIA A40
@@ -101,7 +102,7 @@ nvidia a100:
 nvidia a40:
   na-east1-a:
   - base_auction:
-      fcp_instance: 'a40'
+      fcp_instance: 'a40.8x.PCIe.ICI'
       gpu_type: NVIDIA A40
       id: 9a2f45ab-21be-4d5b-bc87-68b93dceedb5
       instance_type_id: 34567890-9876-1234-5678-901234567890
@@ -116,14 +117,14 @@ nvidia a40:
       architecture: PCIe
       id: 34567890-9876-1234-5678-901234567890
       memory_gb: 460
-      name: 'a40'
+      name: 'a40.8x.PCIe.ICI'
       num_cpus: 96
       num_gpus: 8
-    instance_type_info: 'Details for instance type: 34567890-9876-1234-5678-901234567890'
-    region_info: 'Detailed region info for: na-east1-a'
-    resource_spec_info: Spec details for resource_spec_id=db8ce994-cbaf-461b-b7c7-7bba63c12fcc
+    instance_type_info: null
+    region_info: null
+    resource_spec_info: null
   - base_auction:
-      fcp_instance: 'a40'
+      fcp_instance: 'a40.2x.PCIe.ICI'
       gpu_type: NVIDIA A40
       id: 9a2f45ab-21be-4d5b-bc87-68b93dceedb5
       instance_type_id: 34567892-9876-2345-6789-234567895678
@@ -138,14 +139,14 @@ nvidia a40:
       architecture: PCIe
       id: 34567892-9876-2345-6789-234567895678
       memory_gb: 116
-      name: 'a40'
+      name: 'a40.2x.PCIe.ICI'
       num_cpus: 24
       num_gpus: 2
-    instance_type_info: 'Details for instance type: 34567892-9876-2345-6789-234567895678'
-    region_info: 'Detailed region info for: na-east1-a'
-    resource_spec_info: Spec details for resource_spec_id=db8ce994-cbaf-461b-b7c7-7bba63c12fcc
+    instance_type_info: null
+    region_info: null
+    resource_spec_info: null
   - base_auction:
-      fcp_instance: 'a40'
+      fcp_instance: 'a40.4x.PCIe.ICI'
       gpu_type: NVIDIA A40
       id: 9a2f45ab-21be-4d5b-bc87-68b93dceedb5
       instance_type_id: 67892345-1234-5678-9012-345678901234
@@ -160,14 +161,14 @@ nvidia a40:
       architecture: PCIe
       id: 67892345-1234-5678-9012-345678901234
       memory_gb: 230
-      name: 'a40'
+      name: 'a40.4x.PCIe.ICI'
       num_cpus: 48
       num_gpus: 4
-    instance_type_info: 'Details for instance type: 67892345-1234-5678-9012-345678901234'
-    region_info: 'Detailed region info for: na-east1-a'
-    resource_spec_info: Spec details for resource_spec_id=db8ce994-cbaf-461b-b7c7-7bba63c12fcc
+    instance_type_info: null
+    region_info: null
+    resource_spec_info: null
   - base_auction:
-      fcp_instance: 'a40'
+      fcp_instance: 'a40.1x.PCIe.ICI'
       gpu_type: NVIDIA A40
       id: 9a2f45ab-21be-4d5b-bc87-68b93dceedb5
       instance_type_id: 93458765-5634-0987-2345-678956784321
@@ -182,12 +183,12 @@ nvidia a40:
       architecture: PCIe
       id: 93458765-5634-0987-2345-678956784321
       memory_gb: 58
-      name: 'a40'
+      name: 'a40.1x.PCIe.ICI'
       num_cpus: 12
       num_gpus: 1
-    instance_type_info: 'Details for instance type: 93458765-5634-0987-2345-678956784321'
-    region_info: 'Detailed region info for: na-east1-a'
-    resource_spec_info: Spec details for resource_spec_id=db8ce994-cbaf-461b-b7c7-7bba63c12fcc
+    instance_type_info: null
+    region_info: null
+    resource_spec_info: null
 
 # --------------------------------------------------------------------
 # NVIDIA A5000
@@ -195,7 +196,7 @@ nvidia a40:
 nvidia a5000:
   na-east1-b:
   - base_auction:
-      fcp_instance: 'a5000'
+      fcp_instance: 'a5000.1x.PCIe.ICI'
       gpu_type: NVIDIA A5000
       id: 605313d8-af80-4645-8295-8365c989615c
       instance_type_id: 11d6338c-077e-477d-b9ab-49210e7817f5
@@ -210,14 +211,14 @@ nvidia a5000:
       architecture: PCIe
       id: 11d6338c-077e-477d-b9ab-49210e7817f5
       memory_gb: 54
-      name: 'a5000'
+      name: 'a5000.1x.PCIe.ICI'
       num_cpus: 12
       num_gpus: 1
-    instance_type_info: 'Details for instance type: 11d6338c-077e-477d-b9ab-49210e7817f5'
-    region_info: 'Detailed region info for: na-east1-b'
-    resource_spec_info: Spec details for resource_spec_id=a272758b-a465-4fa1-9a96-9d1fefe9dbda
+    instance_type_info: null
+    region_info: null
+    resource_spec_info: null
   - base_auction:
-      fcp_instance: 'a5000'
+      fcp_instance: 'a5000.8x.PCIe.ICI'
       gpu_type: NVIDIA A5000
       id: 605313d8-af80-4645-8295-8365c989615c
       instance_type_id: 2203230b-f99d-402c-b87a-eea6358f80c4
@@ -232,14 +233,14 @@ nvidia a5000:
       architecture: PCIe
       id: 2203230b-f99d-402c-b87a-eea6358f80c4
       memory_gb: 432
-      name: 'a5000'
+      name: 'a5000.8x.PCIe.ICI'
       num_cpus: 96
       num_gpus: 8
-    instance_type_info: 'Details for instance type: 2203230b-f99d-402c-b87a-eea6358f80c4'
-    region_info: 'Detailed region info for: na-east1-b'
-    resource_spec_info: Spec details for resource_spec_id=a272758b-a465-4fa1-9a96-9d1fefe9dbda
+    instance_type_info: null
+    region_info: null
+    resource_spec_info: null
   - base_auction:
-      fcp_instance: 'a5000'
+      fcp_instance: 'a5000.4x.PCIe.ICI'
       gpu_type: NVIDIA A5000
       id: 605313d8-af80-4645-8295-8365c989615c
       instance_type_id: 64dd2535-e92b-43d1-83ec-4d064c486e82
@@ -254,14 +255,14 @@ nvidia a5000:
       architecture: PCIe
       id: 64dd2535-e92b-43d1-83ec-4d064c486e82
       memory_gb: 216
-      name: 'a5000'
+      name: 'a5000.4x.PCIe.ICI'
       num_cpus: 48
       num_gpus: 4
-    instance_type_info: 'Details for instance type: 64dd2535-e92b-43d1-83ec-4d064c486e82'
-    region_info: 'Detailed region info for: na-east1-b'
-    resource_spec_info: Spec details for resource_spec_id=a272758b-a465-4fa1-9a96-9d1fefe9dbda
+    instance_type_info: null
+    region_info: null
+    resource_spec_info: null
   - base_auction:
-      fcp_instance: 'a5000'
+      fcp_instance: 'a5000.2x.PCIe.ICI'
       gpu_type: NVIDIA A5000
       id: 605313d8-af80-4645-8295-8365c989615c
       instance_type_id: 653bef5e-e063-4710-a470-4c1926f40263
@@ -276,12 +277,12 @@ nvidia a5000:
       architecture: PCIe
       id: 653bef5e-e063-4710-a470-4c1926f40263
       memory_gb: 108
-      name: 'a5000'
+      name: 'a5000.2x.PCIe.ICI'
       num_cpus: 24
       num_gpus: 2
-    instance_type_info: 'Details for instance type: 653bef5e-e063-4710-a470-4c1926f40263'
-    region_info: 'Detailed region info for: na-east1-b'
-    resource_spec_info: Spec details for resource_spec_id=a272758b-a465-4fa1-9a96-9d1fefe9dbda
+    instance_type_info: null
+    region_info: null
+    resource_spec_info: null
 
 # --------------------------------------------------------------------
 # NVIDIA H100
@@ -289,30 +290,29 @@ nvidia a5000:
 nvidia h100:
   us-central1-a:
   - base_auction:
-      fcp_instance: 'h100-80gb.pcie'
-      gpu_type: NVIDIA H100
+      fcp_instance: "h100.8x.SXM5.IB"
+      gpu_type: "NVIDIA H100"
+      intranode_interconnect: "SXM5" 
+      internode_interconnect: "IB_1600"
+      instance_type_id: "46e17546-847a-40b8-928b-1a3388338f0f"
+      resource_specification_id: "288b55fb-a6b3-4d65-9fb3-b1f7fa50799e"
       id: a55c0a27-d00e-4ba4-8318-e8f807a2c2fc
-      instance_type_id: 46e17546-847a-40b8-928b-1a3388338f0f
-      internode_interconnect: IB_1600
-      intranode_interconnect: PCIe
       inventory_quantity: 32
       last_price: 10.00
       num_gpu: 8
       region: us-central1-a
-      resource_specification_id: fd689fcf-daec-4a64-a366-0ded19c7310e
     detailed_instance_data:
-      architecture: PCIe
-      id: 46e17546-847a-40b8-928b-1a3388338f0f
-      memory_gb: 1007
-      name: 'h100-80gb.pcie'
+      architecture: SXM5
+      id: 46e17546-847a-40b8-928b-1a3388338f0f 
+      name: 'h100.8x.SXM5.IB'
       num_cpus: 104
       num_gpus: 8
-    instance_type_info: 'Details for instance type: 46e17546-847a-40b8-928b-1a3388338f0f'
-    region_info: 'Detailed region info for: us-central1-a'
-    resource_spec_info: Spec details for resource_spec_id=fd689fcf-daec-4a64-a366-0ded19c7310e
+    instance_type_info: null
+    region_info: null
+    resource_spec_info: null
   us-central1-b:
   - base_auction:
-      fcp_instance: 'h100-80gb.sxm5'
+      fcp_instance: 'h100.8x.SXM5.IB'
       gpu_type: NVIDIA H100
       id: cfe227f9-44c6-4714-b87b-406127a5b30c
       instance_type_id: 6061ef3a-15df-4faa-8929-29ccf5f8a362
@@ -327,9 +327,9 @@ nvidia h100:
       architecture: SXM5
       id: 6061ef3a-15df-4faa-8929-29ccf5f8a362
       memory_gb: 1800
-      name: 'h100-80gb.sxm5'
+      name: 'h100.8x.SXM5.IB'
       num_cpus: 104
       num_gpus: 8
-    instance_type_info: 'Details for instance type: 6061ef3a-15df-4faa-8929-29ccf5f8a362'
-    region_info: 'Detailed region info for: us-central1-b'
-    resource_spec_info: Spec details for resource_spec_id=288b55fb-a6b3-4d65-9fb3-b1f7fa50799e
+    instance_type_info: null
+    region_info: null
+    resource_spec_info: null

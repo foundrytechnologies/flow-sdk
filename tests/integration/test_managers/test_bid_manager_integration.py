@@ -38,6 +38,7 @@ pytestmark = pytest.mark.skipif(
     reason="Skipping BidManagerIntegration tests due to missing required environment variables.",
 )
 
+
 class TestBidManagerIntegration(unittest.TestCase):
     """Integration tests for the BidManager class."""
 
@@ -93,8 +94,12 @@ class TestBidManagerIntegration(unittest.TestCase):
         self.logger.debug("Starting test_submit_and_cancel_bid_with_disk_attachment")
 
         try:
-            self.logger.debug("Retrieving auctions to pick a valid region from an auction.")
-            auctions: List[Auction] = self.foundry_client.get_auctions(project_id=self.project_id)
+            self.logger.debug(
+                "Retrieving auctions to pick a valid region from an auction."
+            )
+            auctions: List[Auction] = self.foundry_client.get_auctions(
+                project_id=self.project_id
+            )
             self.logger.debug(f"Available auctions: {auctions}")
             if not auctions:
                 self.fail("No auctions available to bid on.")
@@ -106,21 +111,29 @@ class TestBidManagerIntegration(unittest.TestCase):
                 self.skipTest("Auction has no region specified; cannot attach a disk.")
             # Now we look up the region_id from the region_name if needed
             region_list: List[RegionResponse] = self.storage_client.get_regions()
-            matching_region = next((r for r in region_list if r.name == region_name), None)
+            matching_region = next(
+                (r for r in region_list if r.name == region_name), None
+            )
             if not matching_region:
-                self.skipTest(f"No region_id found matching auction region '{region_name}'")
+                self.skipTest(
+                    f"No region_id found matching auction region '{region_name}'"
+                )
 
             region_id = matching_region.region_id
             cluster_id = chosen_auction.cluster_id
             instance_type_id = chosen_auction.instance_type_id
-            self.logger.debug(f"Auction cluster_id={cluster_id}, instance_type_id={instance_type_id}, region_id={region_id}")
+            self.logger.debug(
+                f"Auction cluster_id={cluster_id}, instance_type_id={instance_type_id}, region_id={region_id}"
+            )
 
             # Create a unique disk name
             disk_id = str(uuid.uuid4())
             timestamp_str = time.strftime("%Y%m%d%H%M%S")
             # Add an extra random hex piece to reduce collisions
             unique_hex = secrets.token_hex(4)
-            rand_tail = "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
+            rand_tail = "".join(
+                random.choices(string.ascii_lowercase + string.digits, k=4)
+            )
             # e.g., final suffix = "20250114123045-abc1-91e6a777"
             volume_name = f"test-disk-{timestamp_str}-{rand_tail}-{unique_hex}"
             disk_interface = "Block"
@@ -163,7 +176,7 @@ class TestBidManagerIntegration(unittest.TestCase):
         timestamp_str = time.strftime("%Y%m%d%H%M%S")
         unique_hex = secrets.token_hex(4)
         rand_tail = "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
-        order_name = f"test-bid-{timestamp_str}-{rand_tail}-{unique_hex}"
+        order_name = f"test-bid-{uuid.uuid4()}-{int(time.time())}-{secrets.token_hex(2)}"
         self.logger.debug(f"Using order name: {order_name}")
 
         try:
@@ -247,7 +260,7 @@ class TestBidManagerIntegration(unittest.TestCase):
         instance_quantity = 1
         limit_price_cents = 10000
         startup_script = "#!/bin/bash\necho 'Hello World'"
-        order_name = f"test-bid-{secrets.token_hex(8).lower()}-{str(int(time.time()))}"
+        order_name = f"test-bid-{uuid.uuid4()}-{int(time.time())}-{secrets.token_hex(2)}"
         self.logger.debug(f"Using order name: {order_name}")
 
         try:
@@ -297,6 +310,7 @@ class TestBidManagerIntegration(unittest.TestCase):
             self.logger.debug(f"Bid {bid_id} is confirmed cancelled.")
         except Exception as exc:
             self.fail(f"Failed to retrieve bids after cancellation: {exc}")
+
 
 if __name__ == "__main__":
     unittest.main()

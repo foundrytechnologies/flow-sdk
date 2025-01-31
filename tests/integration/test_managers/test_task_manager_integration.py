@@ -6,6 +6,7 @@ import string
 import unittest
 import uuid
 import time
+from pathlib import Path
 
 import pytest
 import yaml
@@ -17,9 +18,13 @@ from src.flow.managers.auction_finder import AuctionFinder
 from src.flow.managers.bid_manager import BidManager
 from src.flow.managers.storage_manager import StorageManager
 from src.flow.managers.task_manager import FlowTaskManager
+
 settings = get_config()
 
-TEST_YAML_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../flow_example.yaml"))
+TEST_YAML_FILE = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../../../flow_example.yaml")
+)
+
 
 @pytest.mark.skipif(
     not all(
@@ -49,12 +54,15 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
 
         original_name = config_data.get("name", "flow-task")
         config_data["name"] = f"{original_name}-test-{self.random_suffix}"
-        config_data["resources_specification"] = {
-            "fcp_instance": "fh1.xlarge",
+        config_data["resources_specification"].update({
+            "fcp_instance": "h100.8x.SXM5.IB",
+            "gpu_type": "NVIDIA H100",
+            "num_gpus": 8,
             "num_instances": 1,
-            "gpu_type": "NVIDIA A100",
-            "num_gpus": 1,
-        }
+            "intranode_interconnect": "SXM5",
+            "internode_interconnect": "IB_1600",
+            "instance_type_id": "46e17546-847a-40b8-928b-1a3388338f0f"
+        })
 
         print("\nUsing resource specifications:")
         print(json.dumps(config_data["resources_specification"], indent=2))
@@ -100,7 +108,14 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
             email=settings.foundry_email,
             password=settings.foundry_password.get_secret_value(),
         )
-        self.auction_finder = AuctionFinder(self.foundry_client)
+
+        self.default_test_catalog = (
+            Path(__file__).parents[3] / "fcp_auction_catalog.yaml"
+        )
+        self.auction_finder = AuctionFinder(
+            foundry_client=self.foundry_client,
+            local_catalog_path=self.default_test_catalog
+        )
         self.bid_manager = BidManager(self.foundry_client)
 
         # Retrieve project ID
@@ -129,47 +144,78 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
 
     def test_create_and_cancel_bid(self):
         """Test creating a bid and then canceling it to ensure end-to-end flow."""
-        print("\nRunning integration test: test_create_and_cancel_bid")
+        self.logger.info("Starting integration test: test_create_and_cancel_bid")
 
-        auctions = self.foundry_client.get_auctions(self.project_id)
-        print(f"\nAvailable auctions before test ({len(auctions)} total):")
+        # Get and augment auctions
+        auctions = self.auction_finder.fetch_auctions(
+            project_id=self.project_id,
+            local_catalog_path=self.default_test_catalog
+        )
+        
+        # New debug logging for raw auctions
+        self.logger.debug('Fetched auctions:')
         for auction in auctions:
-            print(f"Inspecting auction: {auction.model_dump()}")
+            self.logger.debug(
+                "Auction ID: %s, GPU: %s, Instance Type: %s, Region: %s, FCP Instance: %s",
+                auction.id,
+                auction.gpu_type,
+                auction.instance_type_id,
+                auction.region,
+                getattr(auction, 'fcp_instance', 'MISSING')
+            )
 
-        matching_auction = None
-        for auction in auctions:
-            print(f"Checking auction for match: {auction.model_dump()}")
-            if "a100" in (auction.gpu_type or "").lower():
-                matching_auction = auction
-                print(f"Found matching auction: {matching_auction.model_dump()}")
-                break
+        # Check for matches against the criteria
+        matching_auctions = self.auction_finder.find_matching_auctions(
+            auctions=auctions,
+            criteria=self.config_parser.config.resources_specification,
+        )
+        
+        # New debug logging for augmented auctions
+        self.logger.debug("Augmented auctions after processing:")
+        for auction in matching_auctions:
+            self.logger.debug(
+                "Augmented Auction: %s",
+                auction.model_dump()
+            )
 
-        if matching_auction:
-            self.config_parser.config.resources_specification.num_instances = 1
-            self.config_parser.config.resources_specification.gpu_type = matching_auction.gpu_type
-            self.config_parser.config.resources_specification.num_gpus = matching_auction.inventory_quantity
+        self.logger.debug("Matching auctions after criteria check:")
+        for auction in matching_auctions:
+            self.logger.debug("Matched auction: %s", auction.model_dump())
+            # New: Log specific matching attributes
+            self.logger.debug(
+                "Matching Details - FCP Instance: %s, GPU Type: %s, Num GPUs: %s, Interconnect: %s/%s",
+                auction.fcp_instance,
+                auction.gpu_type,
+                auction.num_gpus,
+                auction.intranode_interconnect,
+                auction.internode_interconnect
+            )
 
-            region_val = getattr(matching_auction, "region", None)
-            if not region_val:
-                self.skipTest("No region found in matching auction. Unable to proceed.")
-            print(f"Anchoring storage region to the auction region: {region_val}")
+        self.assertGreater(len(matching_auctions), 0, "No matching auctions found")
+        matching_auction = matching_auctions[0]
+        
+        # New: Log full details of selected auction
+        self.logger.debug("Selected matching auction full details:")
+        for k, v in matching_auction.model_dump().items():
+            self.logger.debug("%s: %s", k, v)
 
-            matching_auction = matching_auction.model_copy(update={"region_id": region_val})
-            create_cfg = self.config_parser.config.persistent_storage.create
-            self.config_parser.config.persistent_storage.create = create_cfg.model_copy(
+        # Replace the hardcoded region with catalog-aligned value
+        region_val = matching_auction.region  # Use region from matched auction
+        print(f"Using auction's region: {region_val} for alignment")
+        
+        self.config_parser.config.persistent_storage.create = (
+            self.config_parser.config.persistent_storage.create.model_copy(
                 update={"region_id": region_val}
             )
+        )
 
-            print("\nUsing resource specifications:")
-            print(
-                json.dumps(
-                    self.config_parser.config.resources_specification.model_dump(),
-                    indent=2,
-                )
+        print("\nUsing resource specifications:")
+        print(
+            json.dumps(
+                self.config_parser.config.resources_specification.model_dump(),
+                indent=2,
             )
-        else:
-            print("No suitable auction found for testing.")
-            self.skipTest("No suitable auction found for testing")
+        )
 
         timestamp_str = time.strftime("%Y%m%d%H%M%S")
         self.config_parser.config.name = f"flow-test-task-{timestamp_str}"
@@ -217,7 +263,9 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
 
         bids_after_cancellation = self.bid_manager.get_bids(project_id=project_id)
         print(f"Bids after cancellation: {bids_after_cancellation}")
-        canceled_bid = next((b for b in bids_after_cancellation if b.id == bid_id), None)
+        canceled_bid = next(
+            (b for b in bids_after_cancellation if b.id == bid_id), None
+        )
         if canceled_bid is None:
             print(f"Bid '{order_name}' has been canceled successfully.")
         else:
@@ -225,3 +273,14 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
                 print(f"Bid '{order_name}' has been canceled successfully.")
             else:
                 self.fail(f"Bid '{order_name}' was not canceled.")
+
+        # After augmentation, log augmented auctions
+        self.logger.debug("Augmented auctions:")
+        for auction in matching_auctions:
+            self.logger.debug(
+                "Auction %s: fcp_instance=%s, intranode=%s, internode=%s",
+                auction.id,
+                auction.fcp_instance,
+                auction.intranode_interconnect,
+                auction.internode_interconnect
+            )

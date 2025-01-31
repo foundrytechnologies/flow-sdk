@@ -118,13 +118,16 @@ class FCPClient:
             "Creating a requests session with max_retries=%d.", max_retries
         )
         session = requests.Session()
+        
+        # Note that the Foundry API has some non-idempotent POST and PUT operations, so we don't want to retry them by default
         retries = Retry(
             total=max_retries,
             backoff_factor=2,  # Exponential backoff
             status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods={"GET", "PUT", "POST", "DELETE"},
-            raise_on_status=False,  # We'll handle status manually
+            allowed_methods={"GET", "DELETE"}, 
+            raise_on_status=False,
         )
+
         adapter = HTTPAdapter(max_retries=retries)
         session.mount("https://", adapter)
         return session

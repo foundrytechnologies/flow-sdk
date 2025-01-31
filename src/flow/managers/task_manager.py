@@ -9,7 +9,9 @@ from flow.clients.foundry_client import FoundryClient
 from flow.config import get_config
 from flow.formatters.table_formatter import TableFormatter
 from flow.logging.spinner_logger import SpinnerLogger
-from flow.managers.auction_finder import AuctionFinder
+from flow.managers.auction_finder import (
+    AuctionFinder,
+)
 from flow.managers.bid_manager import BidManager
 from flow.managers.instance_manager import InstanceManager
 from flow.managers.storage_manager import StorageManager
@@ -323,17 +325,17 @@ class FlowTaskManager:
         auctions = self.auction_finder.fetch_auctions(project_id=project_id)
         self.logger.debug("Auctions fetched: %d total auctions.", len(auctions))
 
-        criteria_dict = resources_specification.model_dump()
-        self.logger.debug("Criteria for matching auctions: %s", criteria_dict)
-
-        matching_auctions = self.auction_finder.find_matching_auctions(
-            auctions=auctions, criteria=resources_specification
-        )
-        if not matching_auctions:
-            self.logger.error("No matching auctions found for the specified resources.")
-            raise NoMatchingAuctionsError(
-                "No matching auctions found for the specified resources."
+        try:
+            matching_auctions = self.auction_finder.find_matching_auctions(
+                auctions=auctions,
+                criteria=resources_specification,
             )
+        except NoMatchingAuctionsError as ex:
+            self.logger.error("Detailed mismatch:\n%s", ex)
+            # Re-raise in our local format
+            raise NoMatchingAuctionsError(str(ex)) from ex
+
+        self.logger.info("%d matching auctions found.", len(matching_auctions))
         return matching_auctions
 
     def _prepare_and_submit_bid(
@@ -361,6 +363,16 @@ class FlowTaskManager:
             user_id: The Foundry user ID.
             disk_attachments: Optional list of existing disk attachments.
         """
+        if not matching_auctions:
+            self.logger.error(
+                "No matching auctions available for bid submission."
+            )
+            raise NoMatchingAuctionsError(
+                "No matching auctions available to submit bid. "
+                "As a quick fix, override by specifying the instance_id associated "
+                "with your desired instance directly in the config."
+            )
+
         selected_auction: Auction = matching_auctions[0]
         self.logger.debug("Selected auction: %s", selected_auction)
 

@@ -17,9 +17,9 @@ ports:
 - external: 8443-8445
   internal: 8003-8005
 resources_specification:
-  fcp_instance: fh1.xlarge
-  gpu_type: NVIDIA A100
-  num_gpus: 1
+  fcp_instance: h100.8x.SXM5.IB
+  gpu_type: NVIDIA H100
+  num_gpus: 8
   num_instances: 1
 startup_script: '#!/bin/bash
 

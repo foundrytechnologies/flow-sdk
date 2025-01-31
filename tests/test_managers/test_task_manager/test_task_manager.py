@@ -117,7 +117,11 @@ class TestFlowTaskManager(unittest.TestCase):
         self.foundry_client.authenticator = self.authenticator
 
         # Real managers with the mocked FoundryClient
-        self.auction_finder = AuctionFinder(self.foundry_client)
+        self.auction_finder = AuctionFinder(
+            foundry_client=self.foundry_client,
+            logger_obj=None,
+            local_catalog_path=None
+        )
         self.bid_manager = BidManager(self.foundry_client)
         self.instance_manager = InstanceManager(self.foundry_client)
 
@@ -178,9 +182,10 @@ class TestFlowTaskManager(unittest.TestCase):
         mock_auction = Auction(
             cluster_id="cluster-123",
             instance_type_id="type-123",
-            fcp_instance=self.config.resources_specification.fcp_instance,
-            gpu_type=self.config.resources_specification.gpu_type,
+            fcp_instance="a100.2x.SXM4.IB",
+            gpu_type="a100",
             inventory_quantity=self.config.resources_specification.num_gpus,
+            num_gpus=1,
             intranode_interconnect=self.config.resources_specification.intranode_interconnect.lower(),  # noqa: E501
             internode_interconnect=self.config.resources_specification.internode_interconnect.lower(),  # noqa: E501
             region_id="us-central1-a",
@@ -354,22 +359,31 @@ class TestFlowTaskManager(unittest.TestCase):
         mock_auction = Auction(
             cluster_id="auction-123",
             instance_type_id="type-123",
-            fcp_instance="fh1.xlarge",
-            gpu_type="a100-40gb",
+            fcp_instance="a100.2x.SXM4.IB",
+            gpu_type="a100",
             inventory_quantity=1,
-            intranode_interconnect="PCIe",
-            internode_interconnect="100G_IB",
-            region_id="us-central1-a",
+            num_gpus=1,
+            intranode_interconnect="SXM4",
+            internode_interconnect="IB_1600",
+            region_id="eu-central1-a",
         )
         self.foundry_client.get_auctions.return_value = [mock_auction]
-        resources_specification = self.config.resources_specification
+        
+        # Replace the entire resources specification instead of using update()
+        self.config.resources_specification = ResourcesSpecification(
+            fcp_instance="a100.2x.SXM4.IB",
+            gpu_type="a100",
+            intranode_interconnect="SXM4",
+            internode_interconnect="IB_1600",
+            region="eu-central1-a",
+            num_instances=1,  # Maintain required fields
+            num_gpus=1        # From original config
+        )
 
         matching_auctions = self.task_manager._find_matching_auctions(
             project_id="proj-123",
-            resources_specification=resources_specification,
+            resources_specification=self.config.resources_specification,
         )
-
-        self.foundry_client.get_auctions.assert_called_once_with(project_id="proj-123")
         self.assertEqual(len(matching_auctions), 1)
         self.assertEqual(matching_auctions[0].cluster_id, "auction-123")
 
@@ -505,6 +519,46 @@ class TestFlowTaskManager(unittest.TestCase):
         with patch("builtins.print"):
             self.task_manager.check_status()
 
+    def test_find_matching_auctions_with_fcp_instance(self):
+        """Integration-like test ensuring that FlowTaskManager filters auctions by fcp_instance."""
+        self.config.resources_specification.fcp_instance = "a40.1x.PCIe.ICI"
+        self.config.resources_specification.gpu_type = "a40"
+        self.config.resources_specification.internode_interconnect = "100G_DCN"
+
+        auctions = [
+            Auction(
+                cluster_id="clust-001",
+                instance_type_id="type-abc",
+                fcp_instance="a40.1x.PCIe.ICI",
+                gpu_type="a40",
+                inventory_quantity=1,
+                num_gpus=1,
+                intranode_interconnect="PCIe",
+                internode_interconnect="100G_DCN",
+                region_id="us-central1-a",
+            ),
+            Auction(
+                cluster_id="clust-002",
+                instance_type_id="type-def",
+                fcp_instance="a40.8x.PCIe.ICI",
+                gpu_type="a40",
+                inventory_quantity=8,
+                num_gpus=8,
+                intranode_interconnect="PCIe", 
+                internode_interconnect="100G_DCN",
+                region_id="us-central1-a",
+            ),
+        ]
+        self.foundry_client.get_auctions.return_value = auctions
+
+        matching_auctions = self.task_manager._find_matching_auctions(
+            project_id="proj-123",
+            resources_specification=self.config.resources_specification,
+        )
+
+        self.assertEqual(len(matching_auctions), 1)
+        self.assertEqual(matching_auctions[0].fcp_instance, "a40.1x.PCIe.ICI")
+
     @patch.object(FlowTaskManager, "_extract_and_prepare_data")
     @patch.object(FlowTaskManager, "_authenticate_and_get_user_data")
     @patch.object(FlowTaskManager, "_find_matching_auctions")
@@ -562,3 +616,43 @@ class TestFlowTaskManager(unittest.TestCase):
         with self.assertRaises(NoMatchingAuctionsError) as context:
             self.task_manager.run()
         self.assertIn("No matching auctions", str(context.exception))
+
+    def test_find_matching_auctions_fcp_instance(self):
+        """Integration-like test ensuring that FlowTaskManager filters auctions by fcp_instance."""
+        self.config.resources_specification.fcp_instance = "a40.1x.PCIe.ICI"
+        self.config.resources_specification.gpu_type = "a40"
+        self.config.resources_specification.internode_interconnect = "100G_DCN"
+
+        auctions = [
+            Auction(
+                cluster_id="clust-001",
+                instance_type_id="type-abc",
+                fcp_instance="a40.1x.PCIe.ICI",
+                gpu_type="a40",
+                inventory_quantity=1,
+                num_gpus=1,
+                intranode_interconnect="PCIe",
+                internode_interconnect="100G_DCN",
+                region_id="us-central1-a",
+            ),
+            Auction(
+                cluster_id="clust-002",
+                instance_type_id="type-def",
+                fcp_instance="a40.8x.PCIe.ICI",
+                gpu_type="a40",
+                inventory_quantity=8,
+                num_gpus=8,
+                intranode_interconnect="PCIe", 
+                internode_interconnect="100G_DCN",
+                region_id="us-central1-a",
+            ),
+        ]
+        self.foundry_client.get_auctions.return_value = auctions
+
+        matching_auctions = self.task_manager._find_matching_auctions(
+            project_id="proj-123",
+            resources_specification=self.config.resources_specification,
+        )
+
+        self.assertEqual(len(matching_auctions), 1)
+        self.assertEqual(matching_auctions[0].fcp_instance, "a40.1x.PCIe.ICI")

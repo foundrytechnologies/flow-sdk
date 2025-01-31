@@ -1,13 +1,13 @@
-name: foundry-flow-example-batch-task-test-469
+name: flow-sdk-batch-task-test-770
 persistent_storage:
   create:
     disk_interface: Block
     mount_point: /mnt/my-new-volume
-    region_id: us-central1-a
+    region_id: us-central1-b
     size: 1
     size_unit: gb
     storage_type: block
-    volume_name: testdisk-20250114111654-yxlw
+    volume_name: testdisk-20250130215005-4x2d
 ports:
 - 8080
 - 6006-6010
@@ -18,9 +18,13 @@ ports:
 - external: 8443-8445
   internal: 8003-8005
 resources_specification:
-  fcp_instance: fh1.xlarge
-  gpu_type: NVIDIA A100
-  num_gpus: 1
+  cluster_id: us-central1-b
+  fcp_instance: h100.8x.SXM5.IB
+  gpu_type: NVIDIA H100
+  instance_type_id: 46e17546-847a-40b8-928b-1a3388338f0f
+  internode_interconnect: IB_1600
+  intranode_interconnect: SXM5
+  num_gpus: 8
   num_instances: 1
 startup_script: '#!/bin/bash
 

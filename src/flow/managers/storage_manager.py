@@ -60,52 +60,75 @@ class StorageManager:
             APIError: If an API error occurs during disk creation.
             Exception: If an unexpected error occurs during disk creation.
         """
-        if not persistent_storage.create:
+        if persistent_storage.create:
+            if not region_id:
+                region_id = self.get_default_region_id()
+
+            create_config = persistent_storage.create
+            volume_name = create_config.volume_name
+            disk_interface = create_config.disk_interface or "Block"
+            size = create_config.size
+            size_unit = getattr(create_config, "size_unit", None)
+            size_unit = size_unit.lower() if size_unit else "gb"
+
+            if not volume_name:
+                raise ValueError("Volume name must be specified.")
+            if not size:
+                raise ValueError("Disk size must be specified.")
+
+            unique_id = uuid.uuid4().hex
+            volume_name = f"{volume_name}-{unique_id}"
+            disk_id = str(uuid.uuid4())
+
+            disk_attachment = DiskAttachment(
+                disk_id=disk_id,
+                name=volume_name,
+                volume_name=volume_name,
+                disk_interface=disk_interface,
+                region_id=region_id,
+                size=size,
+                size_unit=size_unit,
+            )
+
+            self.logger.info("Creating persistent storage...")
+            try:
+                response = self.foundry_client.create_disk(project_id, disk_attachment)
+                self.logger.debug("Disk creation response: %s", response)
+                disk_attachment.disk_id = response.disk_id
+            except APIError as api_err:
+                self.logger.error("APIError during disk creation: %s", api_err)
+                raise APIError(f"Failed to create disk: {api_err}") from api_err
+            except Exception as err:
+                self.logger.error("Unexpected error during disk creation: %s", err)
+                raise
+
+            self.logger.info("Persistent storage creation completed!")
+            return disk_attachment
+        elif persistent_storage.attach:
+            # Handle attach case
+            attach_config = persistent_storage.attach
+            # Resolve region_id if not provided
+            if not region_id:
+                region_id = attach_config.region_id
+            if not region_id:
+                region_id = self.get_default_region_id()
+            # Fetch disk information using get_disk
+            disk = self.foundry_client.get_disk(
+                project_id=project_id, disk_id=attach_config.volume_name
+            )
+            # Create DiskAttachment from fetched disk information
+            disk_attachment = DiskAttachment(
+                disk_id=disk.disk_id,
+                name=disk.name,
+                volume_name=disk.volume_name,
+                disk_interface=disk.disk_interface,
+                region_id=region_id,
+                size=disk.size,
+                size_unit=disk.size_unit,
+            )
+            return disk_attachment
+        else:
             return None
-
-        if not region_id:
-            region_id = self.get_default_region_id()
-
-        create_config = persistent_storage.create
-        volume_name = create_config.volume_name
-        disk_interface = create_config.disk_interface or "Block"
-        size = create_config.size
-        size_unit = getattr(create_config, "size_unit", None)
-        size_unit = size_unit.lower() if size_unit else "gb"
-
-        if not volume_name:
-            raise ValueError("Volume name must be specified.")
-        if not size:
-            raise ValueError("Disk size must be specified.")
-
-        unique_id = uuid.uuid4().hex
-        volume_name = f"{volume_name}-{unique_id}"
-        disk_id = str(uuid.uuid4())
-
-        disk_attachment = DiskAttachment(
-            disk_id=disk_id,
-            name=volume_name,
-            volume_name=volume_name,
-            disk_interface=disk_interface,
-            region_id=region_id,
-            size=size,
-            size_unit=size_unit,
-        )
-
-        self.logger.info("Creating persistent storage...")
-        try:
-            response = self.foundry_client.create_disk(project_id, disk_attachment)
-            self.logger.debug("Disk creation response: %s", response)
-            disk_attachment.disk_id = response.disk_id
-        except APIError as api_err:
-            self.logger.error("APIError during disk creation: %s", api_err)
-            raise APIError(f"Failed to create disk: {api_err}") from api_err
-        except Exception as err:
-            self.logger.error("Unexpected error during disk creation: %s", err)
-            raise
-
-        self.logger.info("Persistent storage creation completed!")
-        return disk_attachment
 
     def get_default_region_id(self) -> str:
         """Retrieves the default region ID from available regions in Foundry.

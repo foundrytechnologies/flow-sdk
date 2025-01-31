@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+eggs/
+sdist/
+*.egg-info/
+.egg/
+dist/
+pip-wheel-metadata/
+
+# Virtual Environments
+env/
+venv/
+ENV/
+.venv/
+
+# IPython/Jupyter
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+
+# Pytest cache
+.pytest_cache/
+
+# Ignore generate_catalogue and catalogue_manager
+src/flow/scripts/generate_catalogue.py
+src/flow/managers/catalogue_manager.py 

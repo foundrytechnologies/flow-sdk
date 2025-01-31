@@ -10,7 +10,7 @@
 # -------------------------------------------------------------------------
 # A human-readable, descriptive name for this task. Appears in Foundry UIs.
 # If omitted, a default or auto-generated name may be used.
-name: foundry-flow-example-batch-task
+name: flow-sdk-batch-task
 
 # -------------------------------------------------------------------------
 # [2] Foundry Task Management
@@ -48,7 +48,7 @@ resources_specification:
   # -----------------------------------------------------------------------
   # The name of the GPU instance type. Adjust according to your project's
   # performance requirements or availability in a given Foundry cluster.
-  fcp_instance: h100-80gb.SXM
+  fcp_instance: h100.8x.SXM5.IB  # Canonical format from create_canonical_fcp_label() in catalogue_manager.py
 
   # -----------------------------------------------------------------------
   # 3.2 Number of Instances
@@ -57,13 +57,14 @@ resources_specification:
   # Increase for tasks that need multi-instance processing in an all-or-nothing
   # configuration (e.g., distributed training).
   num_instances: 1
+  num_gpus: 8 
 
   # -----------------------------------------------------------------------
   # 3.3 Cluster ID (Optional)
   # -----------------------------------------------------------------------
   # Restrict task placement to a specific cluster or region if needed.
   # Uncomment and set the cluster_id to choose a region (e.g., "us-central1").
-  # cluster_id: us-central1
+  cluster_id: us-central1-b  # Where H100 SXM5 instances are available
 
 # -------------------------------------------------------------------------
 # [4] Ports to Expose (Optional)
@@ -99,7 +100,7 @@ persistent_storage:
     storage_type: block                  # Options: 'block' or 'nfs'
     size: 1                              # Size in GB
     mount_point: /mnt/my-new-volume      # Where volume is mounted on the instance
-    region_id: us-central1-a             # Region/zone for storage
+    region_id: us-central1-b             # Region/zone for storage
     disk_interface: Block                # Usually 'Block' for block-based volumes
 
   # -----------------------------------------------------------------------
