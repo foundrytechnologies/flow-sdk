@@ -1,4 +1,4 @@
-name: flow-sdk-batch-task-test-770
+name: flow-sdk-batch-task-test-918
 persistent_storage:
   create:
     disk_interface: Block
@@ -7,7 +7,7 @@ persistent_storage:
     size: 1
     size_unit: gb
     storage_type: block
-    volume_name: testdisk-20250130215005-4x2d
+    volume_name: testdisk-20250130222259-lxqi
 ports:
 - 8080
 - 6006-6010

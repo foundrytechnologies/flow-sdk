@@ -33,9 +33,9 @@ task_management:
   # -----------------------------------------------------------------------
   # A direct per-GPU limit price (spot_bid). If left out, Foundry calculates
   # the spot_bid based on the 'priority' field above. 
-  # Note, Foundry utility maximization is mbased on a second price auction, so users aren't charged their utility price but rather a guaranteed lower rate.
+  # Note, Foundry utility maximization is based on a second price auction, so users aren't charged their utility price but rather a guaranteed lower rate.
   # Thus, users can set the utility threshold price to their 'true utility threshold'.
-  utility_threshold_price: 2.24  # Example low priority custom price for a batch task
+  utility_threshold_price: 17.92 # Example low priority custom price for a batch task, 2.24/GPU/hour for H100 SXM5
 
 # -------------------------------------------------------------------------
 # [3] Resource Configuration
