@@ -226,7 +226,9 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
         except APIError as exc:
             # Handle the 409 (disk already exists) scenario by deleting the disk and retrying:
             if getattr(exc, "status_code", None) == 409:
-                self.logger.warning("Disk creation conflict (409). Attempting cleanup and re-run.")
+                self.logger.warning(
+                    "Disk creation conflict (409). Attempting cleanup and re-run."
+                )
                 # Attempt to cleanup the disk if partially created or left from a previous run
                 try:
                     self.storage_manager.delete_disk(self.project_id, self.disk_id)
