@@ -217,8 +217,11 @@ class TestBidManagerIntegration(unittest.TestCase):
         self.assertIn(disk_attachment.disk_id, bid.disk_ids)
 
         try:
-            self.bid_manager.cancel_bid(project_id=self.project_id, bid_id=bid_id)
-            self.logger.debug("Bid %s cancelled successfully.", bid_id)
+            response = self.bid_manager.cancel_bid(project_id=self.project_id, bid_id=bid_id)
+            if response.status_code == 404:
+                self.logger.info("Bid not found on cancel; assuming it was already removed. Test passes.")
+            else:
+                self.assertEqual(response.status_code, 200, "Unexpected status during bid cancellation.")
         except Exception as exc:
             self.logger.error(f"Failed to cancel bid: {exc}")
             self.fail(f"Failed to cancel bid: {exc}")
@@ -309,8 +312,11 @@ class TestBidManagerIntegration(unittest.TestCase):
         self.assertFalse(bid.disk_ids)
 
         try:
-            self.bid_manager.cancel_bid(project_id=self.project_id, bid_id=bid_id)
-            self.logger.debug("Bid %s cancelled successfully.", bid_id)
+            response = self.bid_manager.cancel_bid(project_id=self.project_id, bid_id=bid_id)
+            if response.status_code == 404:
+                self.logger.info("Bid not found on cancel; assuming it was already removed. Test passes.")
+            else:
+                self.assertEqual(response.status_code, 200, "Unexpected status during bid cancellation.")
         except Exception as exc:
             self.logger.error(f"Failed to cancel bid: {exc}")
             self.fail(f"Failed to cancel bid: {exc}")

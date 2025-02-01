@@ -71,7 +71,7 @@ class HTTPClient:
             total=max_retries,
             backoff_factor=3,
             status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods={"GET", "PUT", "DELETE"},
+            allowed_methods={"GET", "POST", "DELETE"},
             raise_on_status=False,
         )
         adapter: HTTPAdapter = HTTPAdapter(max_retries=retries)
