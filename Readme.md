@@ -81,7 +81,7 @@ Foundry **tasks** are defined by the following attributes:
 # -------------------------------------------------------------------------
 # A human-readable, descriptive name for this task. Appears in Foundry UIs.
 # If omitted, a default or auto-generated name may be used.
-name: flow-tsk-my-test-5
+name: flow-sdk-batch-task-example
 
 # -------------------------------------------------------------------------
 # [2] Foundry Task Management
