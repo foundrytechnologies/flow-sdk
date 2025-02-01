@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import logging
 from typing import Any, Dict, List, Optional, Tuple
@@ -18,19 +19,13 @@ from flow.task_config.models import Port, PersistentStorage, EphemeralStorageCon
 class StartupScriptBuilderError(Exception):
     """Base exception class for startup script builder errors."""
 
-    pass
-
 
 class TemplatesFileNotFoundError(StartupScriptBuilderError):
-    """Raised when the templates YAML file cannot be found."""
-
-    pass
+    """Exception raised when the templates YAML file cannot be found."""
 
 
 class TemplateKeyNotFoundError(StartupScriptBuilderError):
-    """Raised when a requested template key is missing in the YAML data."""
-
-    pass
+    """Exception raised when a requested template key is missing in the YAML data."""
 
 
 # -------------------------------------------------------------
@@ -74,12 +69,13 @@ class JinjaTemplateSegmentBuilder(ScriptSegmentBuilder):
         template_str: str,
         template_context: Dict[str, Any],
         logger: Optional[logging.Logger] = None,
-    ):
-        """
+    ) -> None:
+        """Initialize a JinjaTemplateSegmentBuilder.
+
         Args:
             template_str: The raw Jinja template string.
             template_context: Dictionary of variables to substitute in the template.
-            logger: Optional logger object.
+            logger: Optional logger instance. If omitted, a NoOpLogger is used.
         """
         self.template_str = template_str
         self.template_context = template_context
@@ -128,9 +124,9 @@ class StartupScriptBuilder:
         """
         self.logger: logging.Logger = logger if logger else NoOpLogger()
         self.logger.debug(
-            "Initializing StartupScriptBuilder with base_script=%r, templates_file_path=%r",
-            base_script,
-            templates_file_path,
+            msg="Initializing StartupScriptBuilder with base_script=%r, templates_file_path=%r",
+            base_script=base_script,
+            templates_file_path=templates_file_path,
         )
 
         self.base_script = base_script
@@ -278,37 +274,49 @@ class StartupScriptBuilder:
     ) -> None:
         """
         Inject persistent storage logic using the 'persistent_storage_segment' template.
-
+    
         Args:
             persistent_storage: Configuration for persistent storage, e.g. block or file share.
         """
         self.logger.debug(
             "inject_persistent_storage called with %s", persistent_storage
         )
-        if not persistent_storage or not persistent_storage.mount_dir:
+        if not persistent_storage:
             self.logger.info(
-                "No persistent storage mount_dir provided; skipping injection."
+                "No persistent storage config provided; skipping injection."
             )
             return
-
+    
+        # Support backward compatibility:
+        # If persistent_storage has a 'mount_points' attribute, use it.
+        # Otherwise, if it has a 'mount_dir' attribute, wrap it into a list.
+        mount_points = getattr(persistent_storage, "mount_points", None)
+        if mount_points is None:
+            mount_dir = getattr(persistent_storage, "mount_dir", None)
+            if mount_dir is not None:
+                mount_points = [mount_dir]
+        if not mount_points:
+            self.logger.info(
+                "No persistent storage mount_points provided; skipping injection."
+            )
+            return
+    
         template_key = "persistent_storage_segment"
         if template_key not in self.templates:
             warning_msg = f"Template '{template_key}' not found in loaded templates."
             self.logger.warning(warning_msg)
             return
-
-        mount_dirs = [persistent_storage.mount_dir]
-        self.logger.debug("Using mount_dirs: %s", mount_dirs)
-
+    
+        self.logger.debug("Using mount_points: %s", mount_points)
         segment_builder = JinjaTemplateSegmentBuilder(
             template_str=self.templates[template_key],
-            template_context={"mount_points": mount_dirs},
+            template_context={"mount_points": mount_points},
             logger=self.logger,
         )
         self.segments.append(segment_builder)
         self.logger.info(
-            "Persistent storage segment injected for mount_dir='%s'.",
-            persistent_storage.mount_dir,
+            "Persistent storage segment injected for mount_points='%s'.",
+            mount_points,
         )
 
     def inject_custom_script(self, custom_script: Optional[str]) -> None:
@@ -374,11 +382,10 @@ class StartupScriptBuilder:
     # Build final startup script
     # ----------------------------------
     def build_script(self) -> str:
-        """
-        Combines the base script + all injected segments into a single script string.
+        """Combine the base script and all injected segments into a single startup script.
 
         Returns:
-            The complete bash startup script.
+            The complete bash startup script as a string.
         """
         self.logger.debug("Beginning build_script.")
         final_script_lines = [self.base_script]

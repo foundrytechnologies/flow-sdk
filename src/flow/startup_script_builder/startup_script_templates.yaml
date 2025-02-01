@@ -10,49 +10,67 @@
 templates:
 
   port_forwarding_segment: |
-    {% raw %}
-    echo "=== Configuring Port Forwarding and Nginx ==="
-    sudo DEBIAN_FRONTEND=noninteractive apt-get update
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nginx
-    sudo systemctl enable nginx
+    #!/bin/bash
+    # Enable strict error checking and debugging
+    set -euxo pipefail
 
-    echo "=== Generating Self-Signed SSL Certificate ==="
+    # Helper function for logging with timestamp
+    log() { echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $*"; }
+    die() { log "ERROR: $*"; exit 1; }
+
+    log "Configuring Port Forwarding and Nginx"
+
+    # Update & install nginx only if not already installed
+    if ! dpkg -l | grep -q nginx; then
+      sudo DEBIAN_FRONTEND=noninteractive apt-get update || die "apt-get update failed"
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nginx || die "nginx install failed"
+      sudo systemctl enable nginx || die "Failed to enable nginx"
+    else
+      log "Nginx already installed."
+    fi
+
+    log "Generating Self-Signed SSL Certificate"
     sudo mkdir -p /etc/ssl/private
     sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
       -keyout /etc/ssl/private/myserver.key \
       -out /etc/ssl/certs/myserver.crt \
-      -subj '/CN=localhost'
+      -subj '/CN=localhost' || die "Failed generating SSL certificate"
+
+    # (Optional) Remove default site if it conflicts:
+    # sudo rm -f /etc/nginx/sites-enabled/default
 
     # Disable strict host key checking for foundrypf
-    sudo sed -i '/ssh -i $sshKey -nNT -R $port:localhost:$port ubuntu@$bastionHost -p 2222/s/$/ -o StrictHostKeyChecking=no/' /usr/local/bin/foundrypf
+    sudo sed -i '/ssh -i $sshKey -nNT -R $port:localhost:$port ubuntu@$bastionHost -p 2222/s/$/ -o StrictHostKeyChecking=no/' /usr/local/bin/foundrypf || \
+      log "Warning: updating foundrypf command failed"
 
     {% for (external_port, internal_port) in port_mappings %}
-    echo "=== Setting up foundrypf for external port {{external_port}} => internal port {{internal_port}} ==="
-    sudo bash -c "cat <<EOF > /etc/systemd/system/foundrypf_{{internal_port}}.service
+    log "Setting up foundrypf for external port {{ external_port }} => internal port {{ internal_port }}"
+    sudo bash -c "cat <<EOF > /etc/systemd/system/foundrypf_{{ internal_port }}.service
     [Unit]
-    Description=Foundry Port Forwarding Service for port {{internal_port}}
+    Description=Foundry Port Forwarding Service for port {{ internal_port }}
     After=network.target
     Wants=network-online.target
 
     [Service]
     Type=simple
     User=root
-    ExecStart=/usr/local/bin/foundrypf {{internal_port}}
+    ExecStart=/usr/local/bin/foundrypf {{ internal_port }}
     Restart=always
     RestartSec=3
 
     [Install]
     WantedBy=multi-user.target
-    EOF"
-    sudo systemctl daemon-reload
-    sudo systemctl enable foundrypf_{{internal_port}}.service
-    sudo systemctl start foundrypf_{{internal_port}}.service
+    EOF" || die "Failed writing systemd unit for port {{ internal_port }}"
+    
+    sudo systemctl daemon-reload || die "daemon-reload failed"
+    sudo systemctl enable foundrypf_{{ internal_port }}.service || die "Enabling foundrypf_{{ internal_port }}.service failed"
+    sudo systemctl start foundrypf_{{ internal_port }}.service || die "Starting foundrypf_{{ internal_port }}.service failed"
 
-    echo "=== Creating Nginx config for external port {{external_port}} => internal port {{internal_port}} ==="
-    sudo bash -c "cat <<EOF > /etc/nginx/sites-available/port_{{external_port}}_ssl
+    log "Creating Nginx config for external port {{ external_port }} => internal port {{ internal_port }}"
+    sudo bash -c "cat <<EOF > /etc/nginx/sites-available/port_{{ external_port }}_ssl
     server {
-        listen {{external_port}} ssl;
-        listen [::]:{{external_port}} ssl;
+        listen {{ external_port }} ssl;
+        listen [::]:{{ external_port }} ssl;
         server_name _;
         ssl_certificate /etc/ssl/certs/myserver.crt;
         ssl_certificate_key /etc/ssl/private/myserver.key;
@@ -60,65 +78,77 @@ templates:
         ssl_ciphers HIGH:!aNULL:!MD5;
 
         location / {
-            proxy_pass http://localhost:{{internal_port}};
+            proxy_pass http://localhost:{{ internal_port }};
             proxy_set_header Host \$host;
             proxy_set_header X-Real-IP \$remote_addr;
             proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto \$scheme;
         }
     }
-    EOF"
-    sudo ln -sf /etc/nginx/sites-available/port_{{external_port}}_ssl /etc/nginx/sites-enabled/
+    EOF" || die "Failed creating Nginx site configuration for external port {{ external_port }}"
+    
+    sudo ln -sf /etc/nginx/sites-available/port_{{ external_port }}_ssl /etc/nginx/sites-enabled/ || \
+      log "Warning: failed linking Nginx config for port {{ external_port }}"
     {% endfor %}
 
-    echo "=== Restarting Nginx to Apply Port Forwarding Changes ==="
-    sudo systemctl restart nginx
-    {% endraw %}
+    {% if port_mappings %}
+    log "Testing Nginx config"
+    sudo nginx -t || die "Nginx config test failed"
+
+    log "Restarting Nginx to apply port forwarding changes"
+    sudo systemctl restart nginx || die "Nginx restart failed"
+    {% endif %}
 
 
   ephemeral_storage_segment: |
-    {% raw %}
-    echo "=== Configuring Ephemeral Storage ==="
-    # The ephemeral_mounts dictionary is expected to be: {src_path: dst_path}.
-    # Adjust logic as needed for your ephemeral storage approach.
+    #!/bin/bash
+    set -euxo pipefail
 
+    # Define helper functions
+    log() { echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $*"; }
+    die() { log "ERROR: $*"; exit 1; }
+
+    log "Configuring Ephemeral Storage"
     {% for src, dst in ephemeral_mounts.items() %}
-    echo "Mounting ephemeral storage from '{{src}}' to '{{dst}}' (user-defined logic)."
-    # Example: create the destination directory
-    sudo mkdir -p "{{dst}}"
-    # You can adapt this to your ephemeral approach, e.g. symlinks, bind mounts, etc.
-    sudo mount --bind "{{src}}" "{{dst}}"
-    echo "Mounted ephemeral storage from '{{src}}' to '{{dst}}'."
+    log "Mounting ephemeral block device '{{ src }}' at '{{ dst }}'"
+    sudo mkdir -p "{{ dst }}" || die "Failed to create mount directory {{ dst }}"
+    sudo mkfs.ext4 -F "{{ src }}" || die "Failed to format device {{ src }}"
+    sudo mount "{{ src }}" "{{ dst }}" || die "Failed to mount {{ src }} to {{ dst }}"
+    sudo chown -R $USER:$USER "{{ dst }}" || log "Warning: could not change ownership for {{ dst }}"
+    log "Mounted ephemeral block device '{{ src }}' to '{{ dst }}'"
     {% endfor %}
-    {% endraw %}
+    # End of ephemeral storage configuration.
 
 
   persistent_storage_segment: |
-    {% raw %}
-    echo "=== Configuring Persistent Storage ==="
+    #!/bin/bash
+    set -euxo pipefail
+
+    log() { echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $*"; }
+    die() { log "ERROR: $*"; exit 1; }
+
+    log "Configuring Persistent Storage"
     DISK_DEVS=($(lsblk -dpno NAME,TYPE | grep 'disk' | awk '{print $1}'))
-    echo "Disk devices found: ${DISK_DEVS[@]}"
+    log "Disk devices found: ${DISK_DEVS[@]}"
 
     MOUNT_POINTS=({{ mount_points | join(' ') }})
 
     if [ "${#DISK_DEVS[@]}" -ne "${#MOUNT_POINTS[@]}" ]; then
-        echo "ERROR: The number of disks (${#DISK_DEVS[@]}) does not match the number of mount points (${#MOUNT_POINTS[@]})."
-        exit 1
+        die "The number of disks (${#DISK_DEVS[@]}) does not match the number of mount points (${#MOUNT_POINTS[@]})."
     fi
 
-    i=0
-    for dev in "${DISK_DEVS[@]}"; do
+    for i in "${!DISK_DEVS[@]}"; do
+        dev="${DISK_DEVS[$i]}"
         mp="${MOUNT_POINTS[$i]}"
-        echo "Formatting and mounting $dev at $mp"
-        sudo mkdir -p "$mp"
-        sudo mkfs.ext4 -F "$dev"
-        sudo mount "$dev" "$mp"
-        sudo chown -R $USER:$USER "$mp"
+        log "Formatting and mounting $dev at $mp"
+        sudo mkdir -p "$mp" || die "Failed to create mount point $mp"
+        sudo mkfs.ext4 -F "$dev" || die "Failed to format device $dev"
+        sudo mount "$dev" "$mp" || die "Failed to mount $dev at $mp"
+        sudo chown -R $USER:$USER "$mp" || log "Warning: failed changing ownership at $mp"
         UUID=$(sudo blkid -s UUID -o value "$dev")
-        echo "UUID=$UUID $mp ext4 defaults 0 2" | sudo tee -a /etc/fstab
-        ((i++))
+        echo "UUID=$UUID $mp ext4 defaults 0 2" | sudo tee -a /etc/fstab || \
+          log "Warning: failed to update /etc/fstab for $dev"
     done
-    {% endraw %}
 
 
 # -----------------------------------------------------------------------------
@@ -130,21 +160,22 @@ templates:
 # -----------------------------------------------------------------------------
 
   bootstrap_script_segment: |
-    {% raw %}
     #!/bin/bash
-    set -e
-    echo "=== Bootstrapping Large Startup Script ==="
+    set -euxo pipefail
+
+    log() { echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $*"; }
+    die() { log "ERROR: $*"; exit 1; }
+
+    log "Bootstrapping Large Startup Script"
 
     # Write the base64-encoded script to a temporary file
-    cat << 'EOF_COMPRESSED' > /tmp/encoded_script.b64
+    cat << 'EOF_COMPRESSED' > /tmp/encoded_script.b64 || die "Failed to write encoded script"
     {{ encoded_script }}
     EOF_COMPRESSED
 
-    # Decode, decompress, and execute
-    echo "=== Decoding and Decompressing ==="
-    base64 -d /tmp/encoded_script.b64 | gunzip -c > /tmp/full_script.sh
-    chmod +x /tmp/full_script.sh
+    log "Decoding and Decompressing the full startup script"
+    base64 -d /tmp/encoded_script.b64 | gunzip -c > /tmp/full_script.sh || die "Decoding or decompression failed"
+    chmod +x /tmp/full_script.sh || die "Failed to make the full script executable"
 
-    echo "=== Executing Full Startup Script ==="
-    /tmp/full_script.sh
-    {% endraw %}
+    log "Executing Full Startup Script"
+    /tmp/full_script.sh || die "Execution of the full startup script failed"
