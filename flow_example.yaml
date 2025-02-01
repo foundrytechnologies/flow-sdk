@@ -10,7 +10,7 @@
 # -------------------------------------------------------------------------
 # A human-readable, descriptive name for this task. Appears in Foundry UIs.
 # NOTE, FCP's current API requires that names be unique
-name: flow-sdk-task-conf-example-2
+name: flow-sdk-task-conf-example
 
 # -------------------------------------------------------------------------
 # [2] Foundry Task Management

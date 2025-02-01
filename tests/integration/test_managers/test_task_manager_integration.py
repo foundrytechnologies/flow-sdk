@@ -19,6 +19,7 @@ from src.flow.managers.auction_finder import AuctionFinder
 from src.flow.managers.bid_manager import BidManager
 from src.flow.managers.storage_manager import StorageManager
 from src.flow.managers.task_manager import FlowTaskManager
+from src.flow.utils.exceptions import APIError
 
 settings = get_config()
 
@@ -220,7 +221,26 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
         self.config_parser.config.name = f"flow-test-task-{timestamp_str}"
         print(f"Using random name: {self.config_parser.config.name}")
 
-        self.task_manager.run()
+        try:
+            self.task_manager.run()
+        except APIError as exc:
+            # Handle the 409 (disk already exists) scenario by deleting the disk and retrying:
+            if getattr(exc, "status_code", None) == 409:
+                self.logger.warning("Disk creation conflict (409). Attempting cleanup and re-run.")
+                # Attempt to cleanup the disk if partially created or left from a previous run
+                try:
+                    self.storage_manager.delete_disk(self.project_id, self.disk_id)
+                    self.logger.info(
+                        f"Deleted disk {self.disk_id} after 409 conflict; retrying run."
+                    )
+                except Exception as cleanup_exc:
+                    self.logger.warning(
+                        f"Failed to delete conflicting disk {self.disk_id}: {cleanup_exc}"
+                    )
+                # Retry once
+                self.task_manager.run()
+            else:
+                raise
 
         print("Retrieving projects")
         projects = self.foundry_client.get_projects()
