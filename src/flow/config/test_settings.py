@@ -5,6 +5,7 @@ environment variables and other settings specifically for testing.
 """
 
 from .base_settings import FoundryBaseSettings
+from pydantic_settings import SettingsConfigDict
 
 
 class FoundryTestSettings(FoundryBaseSettings):
@@ -25,11 +26,6 @@ class FoundryTestSettings(FoundryBaseSettings):
     foundry_project_name: str = "test_project"
     foundry_ssh_key_name: str = "test_ssh_key"
 
-    class Config:
-        """Pydantic configuration for FoundryTestSettings.
-
-        This configuration points to the '.env.test' file for environment
-        variable overrides, if present.
-        """
-
-        env_file = ".env.test"
+    # Replace the deprecated inner 'Config' class with the new model_config attribute.
+    # Update the base model_config to override 'env_file' for testing using the union operator.
+    model_config = FoundryBaseSettings.model_config | {"env_file": ".env.test"}

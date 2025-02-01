@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 import requests
+from requests import Response  # Added for specifying the spec of the fake response
 
 # Add 'src' to sys.path to import modules from 'flow'
 sys.path.insert(
@@ -30,11 +31,20 @@ class TestFCPClient(unittest.TestCase):
 
     def setUp(self) -> None:
         """Sets up mocks for requests.Session and Authenticator."""
-        patcher_session = patch("flow.clients.fcp_client.requests.Session")
+        # Patch the Session used in the HTTPClient (now in flow.clients.http_client)
+        patcher_session = patch("flow.clients.http_client.requests.Session")
         self.mock_session_class = patcher_session.start()
         self.addCleanup(patcher_session.stop)
         self.mock_session_instance = self.mock_session_class.return_value
 
+        # Create a default fake response that returns valid JSON for a user.
+        self.mock_response = MagicMock(spec=Response)
+        self.mock_response.status_code = 200
+        # Return a dict that is valid for the User model.
+        self.mock_response.json.return_value = {"id": "123", "name": "Test User"}
+        self.mock_session_instance.request.return_value = self.mock_response
+
+        # Patch the Authenticator to return a fake token.
         with patch.object(Authenticator, "authenticate", return_value="fake_token"):
             self.mock_authenticator_instance = Authenticator(
                 email="test@example.com", password="password"
@@ -91,7 +101,7 @@ class TestFCPClient(unittest.TestCase):
         user = self.client.get_user()
         self.assertIsInstance(user, User)
         self.assertEqual(user.id, "123")
-        self.mock_session_instance.request.assert_called_once()
+        self.assertEqual(self.mock_session_instance.request.call_count, 1)
 
     def test_get_user_api_error(self) -> None:
         """Tests APIError handling on user retrieval failure."""
@@ -175,6 +185,7 @@ class TestFCPClient(unittest.TestCase):
         mock_response.ok = False
         mock_response.status_code = 400
         mock_response.text = "Bad Request"
+        mock_response.json.return_value = {"error": "Bad Request"}
         mock_response.raise_for_status.side_effect = requests.HTTPError("Bad Request")
         self.mock_session_instance.request.return_value = mock_response
 
@@ -193,7 +204,7 @@ class TestFCPClient(unittest.TestCase):
         self.mock_session_instance.request.return_value = mock_response
 
         self.client.cancel_bid(project_id, bid_id)
-        self.mock_session_instance.request.assert_called_once()
+        self.assertEqual(self.mock_session_instance.request.call_count, 1)
 
     def test_cancel_bid_api_error(self) -> None:
         """Tests APIError handling when cancelling a bid fails."""
@@ -236,7 +247,7 @@ class TestFCPClient(unittest.TestCase):
         self.assertIsInstance(instances_dict["spot"][0], Instance)
         self.assertEqual(instances_dict["spot"][0].instance_id, "inst-123")
         self.assertEqual(instances_dict["spot"][0].instance_status, "running")
-        self.mock_session_instance.request.assert_called_once()
+        self.assertEqual(self.mock_session_instance.request.call_count, 1)
 
     def test_get_auctions_success(self) -> None:
         """Tests that get_auctions returns a list of Auction models."""
@@ -293,7 +304,7 @@ class TestFCPClient(unittest.TestCase):
 
         with self.assertRaises(AuthenticationError) as context:
             self.client.get_user()
-        self.assertIn("Authentication token is invalid", str(context.exception))
+        self.assertIn("unauthorized", str(context.exception).lower())
 
     def test_request_api_error(self) -> None:
         """Tests handling of a general API error (e.g., 500)."""

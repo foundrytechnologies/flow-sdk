@@ -39,6 +39,7 @@ from flow.task_config import (
     Port,
     ResourcesSpecification,
     TaskManagement,
+    ContainerImageConfig,
 )
 from flow.task_config.config_parser import ConfigParser
 from flow.startup_script_builder.startup_script_builder import StartupScriptBuilder
@@ -243,7 +244,7 @@ class FlowTaskManager:
     # =========================================================================
 
     def _build_full_startup_script(self, config: ConfigModel, ports: List[Any]) -> str:
-        """Builds the complete startup script including storage and port configurations.
+        """Builds the complete startup script including ephemeral/persistent storage, port configuration, and container image setup.
 
         Args:
             config: The validated configuration model.
@@ -251,7 +252,7 @@ class FlowTaskManager:
 
         Returns:
             A combined shell script that includes ephemeral storage, persistent storage,
-            and any user-defined startup logic.
+            container image setup, and any user-defined startup logic.
         """
         builder: StartupScriptBuilder = StartupScriptBuilder(logger=self.logger)
 
@@ -283,16 +284,22 @@ class FlowTaskManager:
         if persistent_cfg and isinstance(persistent_cfg, PersistentStorage):
             self.logger.debug("Injecting persistent storage configuration.")
             builder.inject_persistent_storage(persistent_cfg)
+        # Inject container image config if provided.
+        container_image_cfg: Optional[ContainerImageConfig] = config.container_image
+        if container_image_cfg and isinstance(
+            container_image_cfg, ContainerImageConfig
+        ):
+            self.logger.debug("Injecting container image configuration.")
+            builder.inject_container_image(container_image_cfg)
 
-        # Inject any user-provided custom startup script.
+        # If the user defined a custom script in config, we add it last.
         if config.startup_script:
-            self.logger.debug("Injecting user-provided custom startup script.")
+            self.logger.debug("Injecting user-provided custom script logic.")
             builder.inject_custom_script(config.startup_script)
 
         final_script: str = builder.build_script()
         self.logger.debug(
-            "Final startup script generated with length: %d characters.",
-            len(final_script),
+            "Final combined script generated, length: %d characters.", len(final_script)
         )
         return final_script
 

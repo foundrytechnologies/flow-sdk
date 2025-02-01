@@ -95,7 +95,7 @@ task_management:
   # Defines a shorthand for setting a utility price threshold.
   # Foundry uses these utility thresholds to optimize global utility across all tasks.
   # Valid options: [critical, high, standard, low].
-  # If not specified, defaults to 'standard' or the configured default in the 'flow_config' file
+  # If not specified, defaults to 'standard' or the configured default in the 'flow_config' file.
   # Set values in the 'flow_config' file to override defaults.
   priority: low  # Example for lower priority 'batch' tasks
 
@@ -103,10 +103,11 @@ task_management:
   # 2.2 Explicit Utility Threshold Price (Optional)
   # -----------------------------------------------------------------------
   # A direct per-GPU limit price (spot_bid). If left out, Foundry calculates
-  # the spot_bid based on the 'priority' field above. 
-  # Note, Foundry utility maximization is mbased on a second price auction, so users aren't charged their utility price but rather a guaranteed lower rate.
+  # the spot_bid based on the 'priority' field above.
+  # Note, Foundry utility maximization is based on a second price auction,
+  # so users aren't charged their stated utility price but rather a guaranteed lower rate.
   # Thus, users can set the utility threshold price to their 'true utility threshold'.
-  utility_threshold_price: 2.24  # Example low priority custom price for a batch task
+  utility_threshold_price: 17.92  # Example low priority custom price for a batch task with 8 H100 GPUs
 
 # -------------------------------------------------------------------------
 # [3] Resource Configuration
@@ -119,7 +120,7 @@ resources_specification:
   # -----------------------------------------------------------------------
   # The name of the GPU instance type. Adjust according to your project's
   # performance requirements or availability in a given Foundry cluster.
-  fcp_instance: h100-80gb.SXM
+  fcp_instance: h100.8x.SXM5.IB
 
   # -----------------------------------------------------------------------
   # 3.2 Number of Instances
@@ -133,8 +134,8 @@ resources_specification:
   # 3.3 Cluster ID (Optional)
   # -----------------------------------------------------------------------
   # Restrict task placement to a specific cluster or region if needed.
-  # Uncomment and set the cluster_id to choose a region (e.g., "us-central1").
-  # cluster_id: us-central1
+  # Uncomment and set the cluster_id to choose a region (e.g., "us-central1-b").
+  # cluster_id: us-central1-b
 
 # -------------------------------------------------------------------------
 # [4] Ports to Expose (Optional)
@@ -170,7 +171,7 @@ persistent_storage:
     storage_type: block                  # Options: 'block' or 'nfs'
     size: 1                              # Size in GB
     mount_point: /mnt/my-new-volume      # Where volume is mounted on the instance
-    region_id: us-central1-a             # Region/zone for storage
+    region_id: us-central1-b             # Region/zone for storage
     disk_interface: Block                # Usually 'Block' for block-based volumes
 
   # -----------------------------------------------------------------------

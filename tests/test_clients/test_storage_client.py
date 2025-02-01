@@ -419,7 +419,7 @@ class TestStorageClient:
         assert response.size == 1024 * 1024
 
     @pytest.mark.parametrize("num_threads", [5])
-    @patch("flow.clients.storage_client.StorageClient._request")
+    @patch("flow.clients.http_client.HTTPClient.request")
     @patch("flow.clients.authenticator.Authenticator.get_access_token")
     def test_concurrent_disk_creation(
         self,

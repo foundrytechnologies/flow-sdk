@@ -10,7 +10,12 @@ import gzip
 from io import BytesIO
 
 # Add imports from models.py
-from flow.task_config.models import Port, PersistentStorage, EphemeralStorageConfig
+from flow.task_config.models import (
+    Port,
+    PersistentStorage,
+    EphemeralStorageConfig,
+    ContainerImageConfig,
+)
 
 
 # -------------------------------------------------------------
@@ -130,7 +135,7 @@ class StartupScriptBuilder:
         self.logger.debug(
             "Initializing StartupScriptBuilder with base_script=%r, templates_file_path=%r",
             self.base_script,
-            self.templates_file_path
+            self.templates_file_path,
         )
 
         self.segments: List[ScriptSegmentBuilder] = []
@@ -348,6 +353,42 @@ class StartupScriptBuilder:
 
         self.segments.append(CustomScriptSegment(custom_script, self.logger))
         self.logger.info("Custom script segment injected.")
+
+    def inject_container_image(
+        self, container_image_config: ContainerImageConfig
+    ) -> None:
+        """
+        Injects container image setup logic using the 'container_image_segment' template.
+
+        Args:
+            container_image_config: ContainerImageConfig specifying the image details.
+        """
+        self.logger.debug(
+            "inject_container_image called with container_image_config: %s",
+            container_image_config,
+        )
+        template_key: str = "container_image_segment"
+        if template_key not in self.templates:
+            warning_msg: str = (
+                f"Template '{template_key}' not found in loaded templates."
+            )
+            self.logger.warning(warning_msg)
+            return
+
+        segment_builder = JinjaTemplateSegmentBuilder(
+            template_str=self.templates[template_key],
+            template_context={
+                "image_name": container_image_config.image_name,
+                "build_context": container_image_config.build_context,
+                "run_options": container_image_config.run_options,
+            },
+            logger=self.logger,
+        )
+        self.segments.append(segment_builder)
+        self.logger.info(
+            "Container image segment injected for image: %s",
+            container_image_config.image_name,
+        )
 
     def inject_bootstrap_script(self, full_script: str) -> None:
         """

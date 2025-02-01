@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, field_validator
+import uuid
 
 
 class BidResponse(BaseModel):
@@ -24,3 +25,35 @@ class BidResponse(BaseModel):
         if not value.strip():
             raise ValueError("Field cannot be empty or whitespace")
         return value
+
+    @classmethod
+    def dummy_response(
+        cls,
+        order_name: str,
+        project_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        disk_ids: Optional[List[str]] = None,
+        cluster_id: Optional[str] = "unknown",
+        instance_quantity: Optional[int] = 1,
+        instance_type_id: Optional[str] = "unknown",
+        limit_price_cents: Optional[int] = 0,
+    ) -> "BidResponse":
+        """
+        Construct a dummy BidResponse with required fields populated.
+
+        This method encapsulates our default/fallback logic for creating a BidResponse
+        when we detect an idempotent duplicate bid.
+        """
+        return cls(
+            id=str(uuid.uuid4()),
+            name=order_name,
+            cluster_id=cluster_id,
+            instance_quantity=instance_quantity,
+            instance_type_id=instance_type_id,
+            limit_price_cents=limit_price_cents,
+            project_id=project_id,
+            user_id=user_id,
+            disk_ids=disk_ids or [],
+            created_at=None,
+            deactivated_at=None,
+        )

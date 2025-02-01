@@ -150,6 +150,25 @@ templates:
           log "Warning: failed to update /etc/fstab for $dev"
     done
 
+  container_image_segment: |
+    echo "=== Setting Up Our Docker Environment ==="
+    sudo apt-get update
+    sudo apt-get install -y docker.io
+    sudo systemctl start docker
+    sudo systemctl enable docker
+
+    echo "=== Processing Container Image ==="
+    {% if build_context %}
+    echo "Building Docker image '{{ image_name }}' from build context '{{ build_context }}'"
+    cd {{ build_context }}
+    sudo docker build -t {{ image_name }} .
+    {% else %}
+    echo "Pulling Docker image '{{ image_name }}'"
+    sudo docker pull {{ image_name }}
+    {% endif %}
+
+    echo "=== Running Docker Container ==="
+    sudo docker run -d {{ run_options | default('') }} {{ image_name }}
 
 # -----------------------------------------------------------------------------
 # BOOTSTRAP SCRIPT TEMPLATE

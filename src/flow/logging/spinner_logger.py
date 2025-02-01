@@ -24,7 +24,9 @@ class SpinnerLogHandler(logging.Handler):
     or rendered as sub–steps in an active spinner.
     """
 
-    def __init__(self, spinner_logger: SpinnerLogger, level: int = logging.INFO) -> None:
+    def __init__(
+        self, spinner_logger: SpinnerLogger, level: int = logging.INFO
+    ) -> None:
         """Initializes the log handler.
 
         Args:
@@ -129,7 +131,9 @@ class SpinnerLogger:
         """
         if self._spinner_active:
             # Spinner is already active; update the displayed text.
-            self.logger.debug("Spinner already active. Updating message to: %s", message)
+            self.logger.debug(
+                "Spinner already active. Updating message to: %s", message
+            )
             self.update_text(message)
             yield
         else:

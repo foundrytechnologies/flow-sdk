@@ -490,6 +490,26 @@ class Resources(BaseModel):
 
 
 # ---------------------------------------------------------
+#                 Container Image Config
+# ---------------------------------------------------------
+
+
+class ContainerImageConfig(BaseModel):
+    """
+    Container image configuration for specifying a Docker image to run on the VM instance.
+
+    Attributes:
+        image_name: Name of the Docker image (e.g. 'nginx:latest' or a local image tag).
+        build_context: Optional local path for building the Docker image (if provided, the image is built rather than pulled).
+        run_options: Optional command-line options for running the Docker container.
+    """
+
+    image_name: str
+    build_context: Optional[str] = None
+    run_options: Optional[str] = None
+
+
+# ---------------------------------------------------------
 #                     Config Model
 # ---------------------------------------------------------
 
@@ -520,6 +540,7 @@ class ConfigModel(BaseModel):
     networking: Optional[Networking] = None
     resources: Optional[Resources] = None
     startup_script: Optional[str] = None
+    container_image: Optional[ContainerImageConfig] = None
 
     @field_validator("ports", mode="before")
     def validate_ports(cls, ports_value: Any) -> List[Dict[str, Any]]:

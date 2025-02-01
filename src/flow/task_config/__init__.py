@@ -11,5 +11,6 @@ from .models import (
     PersistentStorage,
     Networking,
     Resources,
+    ContainerImageConfig,
 )
 from .config_parser import ConfigParser

@@ -107,7 +107,9 @@ class TableFormatter(Formatter):
             quantity_str = self._safe_format(bid.instance_quantity)
             # If bid.created_at is a datetime, format it. Otherwise, just use safe_format.
             created_str = (
-                self._safe_format(bid.created_at, formatter=lambda d: d.strftime("%Y-%m-%d %H:%M:%S"))
+                self._safe_format(
+                    bid.created_at, formatter=lambda d: d.strftime("%Y-%m-%d %H:%M:%S")
+                )
                 if isinstance(bid.created_at, datetime.datetime)
                 else self._safe_format(bid.created_at)
             )
@@ -169,13 +171,19 @@ class TableFormatter(Formatter):
 
         for instance in instances_sorted[: self.max_rows]:
             created_str = (
-                self._safe_format(instance.start_date, default=MISSING_VALUE,
-                                  formatter=lambda d: d.strftime("%Y-%m-%d %H:%M:%S"))
-                if instance.start_date else MISSING_VALUE
+                self._safe_format(
+                    instance.start_date,
+                    default=MISSING_VALUE,
+                    formatter=lambda d: d.strftime("%Y-%m-%d %H:%M:%S"),
+                )
+                if instance.start_date
+                else MISSING_VALUE
             )
             table.add_row(
                 self._safe_format(instance.name),
-                self._safe_format(getattr(instance, "instance_type_id", None), default="Unknown"),
+                self._safe_format(
+                    getattr(instance, "instance_type_id", None), default="Unknown"
+                ),
                 self._safe_format(instance.instance_status),
                 created_str,
                 # self._safe_format(getattr(instance, "region", None), default="Unknown"),  # TODO: Uncomment when region is supported.
@@ -183,5 +191,7 @@ class TableFormatter(Formatter):
                 self._safe_format(getattr(instance, "category", None)),
             )
 
-        self.logger.debug("Displaying %d instance rows.", min(len(instances), self.max_rows))
+        self.logger.debug(
+            "Displaying %d instance rows.", min(len(instances), self.max_rows)
+        )
         self.console.print(table)

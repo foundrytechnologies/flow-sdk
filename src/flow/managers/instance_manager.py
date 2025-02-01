@@ -115,3 +115,4 @@ class InstanceManager:
         return filtered
 
     # TODO(jaredquincy): Circle back to add more methods as needed (e.g., terminate_instance, get_instance_by_id, etc.)
+    #                   Currently, this is focusing on getting, filtering, and helping display instances for the prelimiinary CLI.
