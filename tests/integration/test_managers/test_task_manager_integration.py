@@ -7,6 +7,7 @@ import unittest
 import uuid
 import time
 from pathlib import Path
+from typing import List
 
 import pytest
 import yaml
@@ -241,18 +242,15 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
         task_name = self.config_parser.config.name
         print(f"Task name from configuration: {task_name}")
 
-        bid_to_cancel = None
-        for bid in bids:
-            if hasattr(bid, "name") and bid.name == task_name:
-                bid_to_cancel = bid
-                print(f"Found bid to cancel: {bid_to_cancel.model_dump()}")
-                break
-
+        bid_to_cancel = next(
+            (bid for bid in bids if hasattr(bid, "name") and bid.name == task_name),
+            None,
+        )
         if not bid_to_cancel:
             self.fail(f"Bid with name '{task_name}' not found after submission.")
+        bid_id = bid_to_cancel.id
 
         order_name = bid_to_cancel.name
-        bid_id = bid_to_cancel.id
         print(f"Order name to cancel: {order_name}")
         print(f"Order ID to cancel: {bid_id}")
 

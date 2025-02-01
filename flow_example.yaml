@@ -6,11 +6,11 @@
 # tailoring your workflow. Update or uncomment fields according to your needs.
 
 # -------------------------------------------------------------------------
-# [1] Task Name (Optional)
+# [1] Task Name
 # -------------------------------------------------------------------------
 # A human-readable, descriptive name for this task. Appears in Foundry UIs.
-# If omitted, a default or auto-generated name may be used.
-name: flow-sdk-batch-task
+# NOTE, FCP's current API requires that names be unique
+name: flow-example-task
 
 # -------------------------------------------------------------------------
 # [2] Foundry Task Management

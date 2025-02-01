@@ -1,173 +1,185 @@
+"""Foundry client.
+
+This module provides the FoundryClient class, a high-level interface to interact
+with the Foundry Cloud Platform (FCP). It encapsulates operations for managing
+projects, instances, bids, storage resources, and more, providing a unified API
+for use in downstream environments.
+
+"""
+
 import logging
 from typing import Dict, List
 
 from flow.clients.authenticator import Authenticator
 from flow.clients.fcp_client import FCPClient
 from flow.clients.storage_client import StorageClient
-from flow.utils.exceptions import APIError
 from flow.models import (
-    User,
-    Project,
-    Instance,
     Auction,
-    SshKey,
     Bid,
     BidPayload,
     BidResponse,
     DetailedInstanceType,
     DiskAttachment,
     DiskResponse,
+    Project,
     RegionResponse,
     StorageQuotaResponse,
+    SshKey,
+    Instance,
+    User,
 )
+from flow.utils.exceptions import APIError
 
 
 class FoundryClient:
-    """
-    A high-level client for interacting with the Foundry Cloud Platform (FCP).
-    Provides convenience methods to manage projects, instances, bids, storage
-    resources, etc. under a single interface.
+    """Client for interacting with the Foundry Cloud Platform (FCP).
 
-    Usage Example:
+    This class provides convenience methods for managing users, projects,
+    instances, bids, storage resources, and regions via underlying FCPClient
+    and StorageClient instances.
+
+    Example:
         client = FoundryClient(email="user@example.com", password="secret")
         user = client.get_user()
         projects = client.get_projects()
     """
 
     def __init__(self, email: str, password: str) -> None:
-        """
-        Initialize FoundryClient with user credentials. This sets up
-        Authenticator, FCPClient, and StorageClient instances.
+        """Initialize the FoundryClient with user credentials.
 
         Args:
-            email: User's email address for authentication.
-            password: User's password for authentication.
+            email (str): The email address of the user.
+            password (str): The user's password.
         """
         self._logger = logging.getLogger(__name__)
         self._logger.debug("Initializing FoundryClient with email=%s", email)
 
-        self._authenticator = Authenticator(email=email, password=password)
-        self.fcp_client = FCPClient(authenticator=self._authenticator)
-        self.storage_client = StorageClient(authenticator=self._authenticator)
+        self._authenticator: Authenticator = Authenticator(
+            email=email, password=password
+        )
+        self.fcp_client: FCPClient = FCPClient(authenticator=self._authenticator)
+        self.storage_client: StorageClient = StorageClient(
+            authenticator=self._authenticator
+        )
 
         self._logger.info("FoundryClient initialized successfully")
 
-    # ----------------------------------------------------------------------
-    #                        FCPClient Methods
-    # ----------------------------------------------------------------------
+    # =========================================================================
+    #                           FCPClient Methods
+    # =========================================================================
 
     def get_user(self) -> User:
-        """
-        Retrieve the currently authenticated user's information.
+        """Retrieve the currently authenticated user's profile.
 
         Returns:
-            A User model containing the user's profile details.
+            User: The profile details of the authenticated user.
         """
         self._logger.debug("Retrieving user information via FCPClient.")
         return self.fcp_client.get_user()
 
     def get_projects(self) -> List[Project]:
-        """
-        Retrieve a list of all accessible projects for the authenticated user.
+        """Fetch all accessible projects for the authenticated user.
 
         Returns:
-            A list of Project models.
+            List[Project]: A list of projects accessible to the user.
         """
         self._logger.debug("Fetching projects from FCPClient.")
         return self.fcp_client.get_projects()
 
     def get_project_by_name(self, project_name: str) -> Project:
-        """
-        Retrieve a project by its name.
+        """Retrieve a project by its name.
 
         Args:
-            project_name: The name of the project to locate.
+            project_name (str): The human-readable name of the project to locate.
 
         Returns:
-            A matching Project model.
+            Project: A project matching the given name.
 
         Raises:
-            ValueError: If no matching project is found.
+            ValueError: If no project with the specified name is found.
         """
         self._logger.debug("Looking up project by name=%s", project_name)
         return self.fcp_client.get_project_by_name(project_name=project_name)
 
     def get_instances(self, project_id: str) -> Dict[str, List[Instance]]:
-        """
-        Retrieve instances within a project, organized by category (e.g., "spot", "reserved").
+        """Retrieve instances within a project, categorized by type.
 
         Args:
-            project_id: The project ID for which to retrieve instances.
+            project_id (str): The unique identifier of the project.
 
         Returns:
-            A dict mapping category strings to lists of Instance objects.
+            Dict[str, List[Instance]]: A dictionary mapping instance categories
+            (e.g., "spot", "reserved") to lists of instances.
         """
         self._logger.debug("Fetching instances for project_id=%s", project_id)
         return self.fcp_client.get_instances(project_id=project_id)
 
     def get_auctions(self, project_id: str) -> List[Auction]:
-        """
-        Fetch auctions for a specified project.
+        """Fetch auctions for a specified project.
 
         Args:
-            project_id: The ID of the project.
+            project_id (str): The unique identifier of the project.
 
         Returns:
-            A list of Auction models.
+            List[Auction]: A list of auctions for the project.
 
         Raises:
-            Exception: If retrieval fails for any reason (e.g., network, parsing).
+            Exception: For any error encountered during retrieval.
         """
         self._logger.debug("Fetching auctions for project_id=%s", project_id)
         try:
-            auctions = self.fcp_client.get_auctions(project_id=project_id)
+            auctions: List[Auction] = self.fcp_client.get_auctions(
+                project_id=project_id
+            )
             self._logger.debug("Successfully retrieved %d auctions.", len(auctions))
             return auctions
         except Exception as exc:
             self._logger.error(
-                "Failed to fetch auctions for project_id=%s: %s", project_id, exc
+                "Failed to fetch auctions for project_id=%s: %s",
+                project_id,
+                exc,
+                exc_info=True,
             )
             raise
 
     def get_ssh_keys(self, project_id: str) -> List[SshKey]:
-        """
-        Retrieve SSH keys associated with the specified project.
+        """Retrieve the SSH keys associated with a project.
 
         Args:
-            project_id: The ID of the project.
+            project_id (str): The unique identifier of the project.
 
         Returns:
-            A list of SSHKey models.
+            List[SshKey]: A list of SSH keys for the project.
         """
         self._logger.debug("Fetching SSH keys for project_id=%s", project_id)
         return self.fcp_client.get_ssh_keys(project_id=project_id)
 
     def get_bids(self, project_id: str) -> List[Bid]:
-        """
-        Retrieve all bids for a given project.
+        """Retrieve all bids placed within a project.
 
         Args:
-            project_id: The ID of the project.
+            project_id (str): The unique identifier of the project.
 
         Returns:
-            A list of Bid models.
+            List[Bid]: A list of bids placed in the project.
         """
         self._logger.debug("Fetching bids for project_id=%s", project_id)
         return self.fcp_client.get_bids(project_id=project_id)
 
     def place_bid(self, project_id: str, bid_payload: BidPayload) -> BidResponse:
-        """
-        Place a bid on a specified project.
+        """Place a bid in a specified project.
+
+        The bid payload is updated with the project ID before sending.
 
         Args:
-            project_id: The ID of the project where the bid is placed.
-            bid_payload: BidPayload with bid details (excluding project_id).
+            project_id (str): The unique identifier of the project.
+            bid_payload (BidPayload): The bid payload (excluding project_id).
 
         Returns:
-            A BidResponse model with details of the placed bid.
+            BidResponse: Details of the placed bid.
 
         Raises:
-            Exception: For any network/validation errors during bid placement.
+            Exception: If an error occurs during bid placement.
         """
         self._logger.debug(
             "Placing bid on project_id=%s with payload=%s",
@@ -175,8 +187,10 @@ class FoundryClient:
             bid_payload.model_dump(),
         )
         try:
-            updated_payload = bid_payload.model_copy(update={"project_id": project_id})
-            bid_response = self.fcp_client.place_bid(updated_payload)
+            updated_payload: BidPayload = bid_payload.model_copy(
+                update={"project_id": project_id}
+            )
+            bid_response: BidResponse = self.fcp_client.place_bid(updated_payload)
             self._logger.debug(
                 "Bid placed successfully. Response=%s", bid_response.model_dump()
             )
@@ -188,12 +202,11 @@ class FoundryClient:
             raise
 
     def cancel_bid(self, project_id: str, bid_id: str) -> None:
-        """
-        Cancel an existing bid in a project.
+        """Cancel an existing bid in a project.
 
         Args:
-            project_id: The project's ID where the bid was placed.
-            bid_id: The ID of the bid to cancel.
+            project_id (str): The unique identifier of the project.
+            bid_id (str): The identifier of the bid to cancel.
         """
         self._logger.debug("Canceling bid_id=%s for project_id=%s", bid_id, project_id)
         self.fcp_client.cancel_bid(project_id=project_id, bid_id=bid_id)
@@ -202,21 +215,24 @@ class FoundryClient:
         )
 
     def get_instance_type(self, instance_type_id: str) -> DetailedInstanceType:
-        """
-        Retrieve details for a specified instance type.
+        """Retrieve details for a specified instance type.
 
-        If the instance type is not found (404), a fallback DetailedInstanceType
-        is returned rather than raising an exception.
+        If the instance type is not found (HTTP 404), a fallback DetailedInstanceType
+        is returned instead of raising an exception.
+
+        Note:
+            This method directly calls a protected member of FCPClient. Consider
+            refactoring FCPClient to expose a public API for retrieving instance types.
 
         Args:
-            instance_type_id: The ID of the instance type to look up.
+            instance_type_id (str): The unique identifier of the instance type.
 
         Returns:
-            A DetailedInstanceType model with the instance type's information.
-            If not found, a fallback object is returned.
+            DetailedInstanceType: The instance type details if found; otherwise a fallback
+            object with default values.
 
         Raises:
-            APIError: For non-404 errors.
+            APIError: If an API error occurs that is not a 404.
         """
         self._logger.debug("Fetching instance type for id=%s", instance_type_id)
         try:
@@ -230,7 +246,8 @@ class FoundryClient:
             )
             return DetailedInstanceType(**data)
         except APIError as err:
-            not_found = "404" in str(err) or (
+            # Determine if the error indicates a missing instance type (404).
+            not_found: bool = "404" in str(err) or (
                 hasattr(err, "response")
                 and err.response is not None
                 and err.response.status_code == 404
@@ -248,7 +265,6 @@ class FoundryClient:
                     memory_gb=None,
                     architecture=None,
                 )
-
             self._logger.error(
                 "Failed to retrieve instance_type id=%s due to APIError: %s",
                 instance_type_id,
@@ -256,29 +272,28 @@ class FoundryClient:
             )
             raise
 
-    # ----------------------------------------------------------------------
-    #                      StorageClient Methods
-    # ----------------------------------------------------------------------
+    # =========================================================================
+    #                        StorageClient Methods
+    # =========================================================================
 
     def create_disk(
         self, project_id: str, disk_attachment: DiskAttachment
     ) -> DiskResponse:
-        """
-        Create a new disk in the specified project.
+        """Create a new disk within the specified project.
 
         Args:
-            project_id: The project ID.
-            disk_attachment: DiskAttachment model with disk setup details.
+            project_id (str): The unique identifier of the project.
+            disk_attachment (DiskAttachment): The disk configuration.
 
         Returns:
-            A DiskResponse model with details of the newly created disk.
+            DiskResponse: Details of the created disk.
         """
         self._logger.debug(
             "Creating disk in project_id=%s with disk_id=%s",
             project_id,
             disk_attachment.disk_id,
         )
-        disk_response = self.storage_client.create_disk(
+        disk_response: DiskResponse = self.storage_client.create_disk(
             project_id=project_id,
             disk_attachment=disk_attachment,
         )
@@ -286,27 +301,25 @@ class FoundryClient:
         return disk_response
 
     def get_disks(self, project_id: str) -> List[DiskResponse]:
-        """
-        Retrieve all disks in a given project.
+        """Retrieve all disks associated with a project.
 
         Args:
-            project_id: The ID of the project.
+            project_id (str): The unique identifier of the project.
 
         Returns:
-            A list of DiskResponse models.
+            List[DiskResponse]: A list of disks in the project.
         """
         self._logger.debug("Fetching disks for project_id=%s", project_id)
-        disks = self.storage_client.get_disks(project_id=project_id)
+        disks: List[DiskResponse] = self.storage_client.get_disks(project_id=project_id)
         self._logger.debug("Retrieved %d disks.", len(disks))
         return disks
 
     def delete_disk(self, project_id: str, disk_id: str) -> None:
-        """
-        Delete a disk from a given project.
+        """Delete a disk from the specified project.
 
         Args:
-            project_id: The ID of the project.
-            disk_id: The ID of the disk to delete.
+            project_id (str): The unique identifier of the project.
+            disk_id (str): The unique identifier of the disk to delete.
         """
         self._logger.debug(
             "Deleting disk_id=%s from project_id=%s", disk_id, project_id
@@ -317,33 +330,33 @@ class FoundryClient:
         )
 
     def get_storage_quota(self, project_id: str) -> StorageQuotaResponse:
-        """
-        Retrieve the storage quota for a specific project.
+        """Retrieve the storage quota details for a project.
 
         Args:
-            project_id: The project ID.
+            project_id (str): The unique identifier of the project.
 
         Returns:
-            A StorageQuotaResponse model.
+            StorageQuotaResponse: The quota details for the project.
         """
         self._logger.debug("Fetching storage quota for project_id=%s", project_id)
-        quota = self.storage_client.get_storage_quota(project_id=project_id)
+        quota: StorageQuotaResponse = self.storage_client.get_storage_quota(
+            project_id=project_id
+        )
         self._logger.debug("Retrieved storage quota: %s", quota.model_dump())
         return quota
 
     def get_regions(self) -> List[RegionResponse]:
-        """
-        Retrieve all available regions from the Foundry platform.
+        """Retrieve all available regions from the Foundry platform.
 
         Returns:
-            A list of RegionResponse models.
+            List[RegionResponse]: A list of regions available.
 
         Raises:
             Exception: If fetching regions fails.
         """
         self._logger.debug("Fetching all regions from StorageClient.")
         try:
-            regions = self.storage_client.get_regions()
+            regions: List[RegionResponse] = self.storage_client.get_regions()
             self._logger.debug("Retrieved %d region(s).", len(regions))
             return regions
         except Exception as exc:
@@ -351,51 +364,49 @@ class FoundryClient:
             raise
 
     def get_disk(self, project_id: str, disk_id: str) -> DiskResponse:
-        """
-        Retrieve information about a given disk in a specific project.
+        """Retrieve detailed information about a disk in a project.
 
         Args:
-            project_id: The project ID.
-            disk_id: The disk ID.
+            project_id (str): The unique identifier of the project.
+            disk_id (str): The unique identifier of the disk.
 
         Returns:
-            A DiskResponse model of the requested disk.
+            DiskResponse: Detailed disk information.
         """
         self._logger.debug("Fetching disk_id=%s in project_id=%s", disk_id, project_id)
-        disk_info = self.storage_client.get_disk(project_id=project_id, disk_id=disk_id)
+        disk_info: DiskResponse = self.storage_client.get_disk(
+            project_id=project_id, disk_id=disk_id
+        )
         self._logger.debug("Fetched disk info: %s", disk_info.model_dump())
         return disk_info
 
     def get_region_id_by_name(self, region_name: str) -> str:
-        """
-        Look up a region's UUID by its human-friendly name (e.g., 'us-central1-a').
+        """Look up a region's unique identifier by its human-friendly name.
 
         Args:
-            region_name: The name of the region to look up.
+            region_name (str): The name of the region (e.g., 'us-central1-a').
 
         Returns:
-            The corresponding region_id (UUID string).
+            str: The unique identifier corresponding to the given region name.
 
         Raises:
-            ValueError: If no matching region name is found.
+            ValueError: If no region with the specified name is found.
         """
         self._logger.debug("Looking up region ID for region_name='%s'", region_name)
-        all_regions = self.get_regions()
+        all_regions: List[RegionResponse] = self.get_regions()
         self._logger.debug("Retrieved %d region(s) total.", len(all_regions))
 
-        for region_response in all_regions:
+        for region in all_regions:
             self._logger.debug(
-                "Examining region '%s' (id=%s)",
-                region_response.name,
-                region_response.region_id,
+                "Examining region '%s' (id=%s)", region.name, region.region_id
             )
-            if region_response.name == region_name:
+            if region.name == region_name:
                 self._logger.debug(
                     "Matched region_name='%s' -> region_id='%s'",
                     region_name,
-                    region_response.region_id,
+                    region.region_id,
                 )
-                return region_response.region_id
+                return region.region_id
 
         self._logger.warning("No matching region found for name='%s'", region_name)
         raise ValueError(f"Region not found for name='{region_name}'")

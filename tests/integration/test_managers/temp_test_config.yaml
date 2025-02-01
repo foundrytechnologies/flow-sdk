@@ -1,4 +1,4 @@
-name: flow-sdk-batch-task-test-918
+name: flow-example-task-test-088
 persistent_storage:
   create:
     disk_interface: Block
@@ -7,7 +7,7 @@ persistent_storage:
     size: 1
     size_unit: gb
     storage_type: block
-    volume_name: testdisk-20250130222259-lxqi
+    volume_name: testdisk-20250201063247-qvhj
 ports:
 - 8080
 - 6006-6010
@@ -37,5 +37,5 @@ startup_script: '#!/bin/bash
   '
 task_management:
   priority: low
-  utility_threshold_price: 2.24
+  utility_threshold_price: 17.92
 version: 1

@@ -56,11 +56,11 @@ logger = logging.getLogger(__name__)
 
 
 class AuctionCatalogError(Exception):
-    """Raised when there's an error loading or parsing a local auction catalog."""
+    """Exception raised when there is an error in loading or parsing a local auction catalog."""
 
 
 class AuctionMatcher:
-    """Checks whether an `Auction` matches a given `ResourcesSpecification`."""
+    """Checks whether an Auction matches a given ResourcesSpecification."""
 
     def __init__(
         self,
@@ -68,25 +68,27 @@ class AuctionMatcher:
         criteria: ResourcesSpecification,
         logger_obj: logging.Logger,
     ) -> None:
-        """Initializes the AuctionMatcher.
+        """
+        Initializes the AuctionMatcher.
 
         Args:
-            criteria: A `ResourcesSpecification` containing desired resource fields.
-            logger_obj: A logger for debug messages.
+            criteria: A ResourcesSpecification instance with the desired resource configuration.
+            logger_obj: A logger object for debug messages.
         """
-        self._criteria = criteria
-        self._logger = logger_obj
+        self._criteria: ResourcesSpecification = criteria
+        self._logger: logging.Logger = logger_obj
 
     def matches(self, auction: Auction) -> bool:
-        """Returns True if the `Auction` satisfies the criteria, otherwise False.
+        """
+        Checks if the provided auction meets the criteria.
 
         Args:
-            auction: The `Auction` instance to check.
+            auction: The Auction object to validate.
 
         Returns:
-            True if the auction meets the specification, False otherwise.
+            True if the auction passes all checks, otherwise False.
         """
-        # Gather all checks with their results and a descriptive message
+        # Gather the check results with a descriptive message for each check.
         check_results = [
             self._check_gpu_type(auction),
             self._check_num_gpus(auction),
@@ -95,12 +97,9 @@ class AuctionMatcher:
             self._check_fcp_instance(auction),
         ]
 
-        # Filter out only those checks that failed
+        # Filter out all checks that did not pass. Log details if any check fails.
         failing_checks = [res for res in check_results if not res["passed"]]
-
         if failing_checks:
-            # Group them in a more detailed log.
-            # For cleanliness, each Auction's failing checks are aggregated below.
             self._logger.debug(
                 "Auction %s (%s) failed the following criteria checks:\n  - %s",
                 auction.cluster_id,
@@ -113,8 +112,8 @@ class AuctionMatcher:
 
         return True
 
-    def _check_gpu_type(self, auction: Auction) -> dict:
-        """Checks GPU type matches if specified. Returns a dict of check details."""
+    def _check_gpu_type(self, auction: Auction) -> Dict[str, Any]:
+        """Checks whether the auction's GPU type matches the expected value."""
         if not self._criteria.gpu_type:
             return {
                 "name": "GPU Type",
@@ -128,15 +127,19 @@ class AuctionMatcher:
 
         passed = bool(re.search(pattern, actual))
         detail = (
-            f"Expected GPU type to match '{self._criteria.gpu_type}' but got '{auction.gpu_type}'."
+            f"Expected GPU type '{self._criteria.gpu_type}' but got '{auction.gpu_type}'."
             if not passed
-            else f"GPU type '{auction.gpu_type}' matches expected pattern '{self._criteria.gpu_type}'."
+            else f"GPU type '{auction.gpu_type}' matches the expected '{self._criteria.gpu_type}'."
         )
-
         return {"name": "GPU Type", "passed": passed, "detail": detail}
 
-    def _check_num_gpus(self, auction: Auction) -> dict:
-        """Checks if the auction has at least the requested number of GPUs."""
+    def _check_num_gpus(self, auction: Auction) -> Dict[str, Any]:
+        """
+        Checks if the auction has at least the requested number of GPUs.
+
+        Returns:
+            A dict with the result of the check.
+        """
         if self._criteria.num_gpus is None:
             return {
                 "name": "Number of GPUs",
@@ -147,17 +150,15 @@ class AuctionMatcher:
         actual_gpus = auction.inventory_quantity or 0
         required_gpus = self._criteria.num_gpus
         passed = actual_gpus >= required_gpus
-
         detail = (
             f"Needed >= {required_gpus} GPUs, but auction has {actual_gpus}."
             if not passed
-            else f"Auction has {actual_gpus} GPUs, which meets or exceeds the required {required_gpus}."
+            else f"Auction has {actual_gpus} GPUs which meets the required {required_gpus}."
         )
-
         return {"name": "Number of GPUs", "passed": passed, "detail": detail}
 
-    def _check_internode_interconnect(self, auction: Auction) -> dict:
-        """Checks if the inter-node interconnect matches, if specified."""
+    def _check_internode_interconnect(self, auction: Auction) -> Dict[str, Any]:
+        """Checks if the auction's inter-node interconnect setting matches the criteria."""
         if not self._criteria.internode_interconnect:
             return {
                 "name": "Inter-node Interconnect",
@@ -168,17 +169,15 @@ class AuctionMatcher:
         expected = self._criteria.internode_interconnect.lower()
         actual = (auction.internode_interconnect or "").lower()
         passed = actual == expected
-
         detail = (
-            f"Expected inter-node '{self._criteria.internode_interconnect}' but got '{auction.internode_interconnect}'."
+            f"Expected inter-node interconnect '{self._criteria.internode_interconnect}' but got '{auction.internode_interconnect}'."
             if not passed
-            else f"Inter-node interconnect '{auction.internode_interconnect}' matches '{self._criteria.internode_interconnect}'."
+            else f"Inter-node interconnect '{auction.internode_interconnect}' matches expected."
         )
-
         return {"name": "Inter-node Interconnect", "passed": passed, "detail": detail}
 
-    def _check_intranode_interconnect(self, auction: Auction) -> dict:
-        """Checks if the intra-node interconnect matches, if specified."""
+    def _check_intranode_interconnect(self, auction: Auction) -> Dict[str, Any]:
+        """Checks if the auction's intra-node interconnect setting matches the criteria."""
         if not self._criteria.intranode_interconnect:
             return {
                 "name": "Intra-node Interconnect",
@@ -189,17 +188,20 @@ class AuctionMatcher:
         expected = self._criteria.intranode_interconnect.lower()
         actual = (auction.intranode_interconnect or "").lower()
         passed = actual == expected
-
         detail = (
-            f"Expected intra-node '{self._criteria.intranode_interconnect}' but got '{auction.intranode_interconnect}'."
+            f"Expected intra-node interconnect '{self._criteria.intranode_interconnect}' but got '{auction.intranode_interconnect}'."
             if not passed
-            else f"Intra-node interconnect '{auction.intranode_interconnect}' matches '{self._criteria.intranode_interconnect}'."
+            else f"Intra-node interconnect '{auction.intranode_interconnect}' matches expected."
         )
-
         return {"name": "Intra-node Interconnect", "passed": passed, "detail": detail}
 
-    def _check_fcp_instance(self, auction: Auction) -> dict:
-        """Checks if FCP instance matches exactly (case-sensitive) if specified."""
+    def _check_fcp_instance(self, auction: Auction) -> Dict[str, Any]:
+        """
+        Checks if the auction's FCP instance exactly matches (case-sensitive) the criteria.
+
+        Returns:
+            A dict with the result of the check.
+        """
         if not self._criteria.fcp_instance:
             return {
                 "name": "FCP Instance",
@@ -211,17 +213,16 @@ class AuctionMatcher:
         detail = (
             f"Expected FCP instance '{self._criteria.fcp_instance}' but got '{auction.fcp_instance}'."
             if not passed
-            else f"FCP instance '{auction.fcp_instance}' matches '{self._criteria.fcp_instance}'."
+            else f"FCP instance '{auction.fcp_instance}' matches the expected value."
         )
-
         return {"name": "FCP Instance", "passed": passed, "detail": detail}
 
 
 class AuctionFinder:
-    """Loads auctions from multiple sources (Foundry and/or static YAML) and finds matches.
-
-    Optionally enriches Foundry-fetched auctions with missing data from the local catalog
-    (based on the instance_type_id or other matching keys).
+    """
+    AuctionFinder loads auctions from multiple sources (Foundry and/or a static YAML catalog)
+    and can filter them using resource specifications. It optionally enriches Foundry auctions
+    with extra data from a local catalog.
     """
 
     def __init__(
@@ -234,22 +235,20 @@ class AuctionFinder:
         """Initializes the AuctionFinder.
 
         Args:
-            foundry_client: A `FoundryClient` instance for dynamic fetching of auctions.
-            logger_obj: Optional logger. If None, uses module-level logger.
-            local_catalog_path: Path to a local static YAML file of auctions (optional).
+            foundry_client: Instance of FoundryClient to fetch auctions dynamically.
+            logger_obj: Optional logger; if omitted, module-level logger is used.
+            local_catalog_path: Optional path to a local YAML file to load static auctions.
         """
-        self._foundry_client = foundry_client
-        self._logger = logger_obj or logger
-        self.default_local_catalog_path = (
+        self._foundry_client: FoundryClient = foundry_client
+        self._logger: logging.Logger = logger_obj or logger
+        self.default_local_catalog_path: Path = (
             Path(__file__).parents[3] / "fcp_auction_catalog.yaml"
         )
+        self.local_catalog_path: Optional[Path] = (
+            Path(local_catalog_path) if local_catalog_path else None
+        )
 
-        if local_catalog_path is not None:
-            self.local_catalog_path = Path(local_catalog_path)
-        else:
-            self.local_catalog_path = None
-
-        # Optional debug so we see what's happening:
+        # Log the presence or absence of the default catalog.
         if self.default_local_catalog_path.exists():
             self._logger.debug(
                 "Default local catalog path: %s (exists=%s)",
@@ -262,19 +261,21 @@ class AuctionFinder:
                 self.default_local_catalog_path,
             )
 
-        # If local_catalog_path was passed to constructor, attempt to load it now
         if self.local_catalog_path is not None:
             self._logger.debug(
                 "Constructor using local_catalog_path=%s", self.local_catalog_path
             )
             self._load_instance_catalog()
         else:
-            # Not specifying here. We'll rely on fetch_auctions() to pick up default
             self._logger.debug(
-                "No local_catalog_path specified to constructor; will try default later."
+                "No local_catalog_path specified to constructor; will use default if available."
             )
 
         self._instance_catalog: Dict[str, Any] = {}
+
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
 
     def fetch_auctions(
         self,
@@ -282,30 +283,28 @@ class AuctionFinder:
         project_id: Optional[str] = None,
         local_catalog_path: Optional[str] = None,
     ) -> List[Auction]:
-        """Fetches auctions from Foundry or a local catalog file or both.
+        """Fetches auctions from Foundry, a local catalog, or both.
 
         Behavior:
-          - If `project_id` is provided and no `local_catalog_path`, returns Foundry auctions only.
-          - If `local_catalog_path` is provided and no `project_id`, returns local auctions only.
-          - If both are provided, merges Foundry auctions with local catalog data.
+          - If a project_id is provided (and no local_catalog_path), fetches auctions from Foundry.
+          - If a local_catalog_path is provided (and no project_id), loads auctions only from the file.
+          - If both sources are provided, it merges Foundry auctions with catalog data.
           - If neither is provided, raises a ValueError.
 
         Args:
-            project_id: Foundry project ID for fetching auctions from Foundry.
-            local_catalog_path: Path to a local YAML file for static auctions.
+            project_id: Optional Foundry project ID for fetching auctions.
+            local_catalog_path: Optional file path to a static YAML auction catalog.
 
         Returns:
-            A list of `Auction` objects. If both Foundry and local data are used,
-            returned items may be enriched with data from the static catalog.
+            A list of Auction objects with possible enrichment from catalog data.
 
         Raises:
-            ValueError: If neither `project_id` nor `local_catalog_path` is provided.
-            AuctionCatalogError: If there's a problem reading/parsing the local catalog.
+            ValueError: if both project_id and local_catalog_path are absent.
+            AuctionCatalogError: if there is an error loading the local catalog.
         """
         auctions_from_foundry: List[Auction] = []
         auctions_from_local: List[Auction] = []
 
-        # Possibly fetch from Foundry
         if project_id:
             self._logger.info(
                 "Fetching auctions from Foundry for project_id=%s.", project_id
@@ -317,7 +316,8 @@ class AuctionFinder:
                 "Foundry returned %d auctions.", len(auctions_from_foundry)
             )
 
-        # Possibly load from a specified local catalog (overrides default if given)
+        # If a local catalog path is provided as an argument, use it;
+        # otherwise check for the default local catalog.
         if local_catalog_path is not None:
             self._logger.info(
                 "Loading auctions from local catalog at '%s'.", local_catalog_path
@@ -326,7 +326,7 @@ class AuctionFinder:
                 catalog_path=local_catalog_path
             )
             self._logger.info(
-                "Local catalog has %d auctions total.", len(auctions_from_local)
+                "Local catalog has %d auctions.", len(auctions_from_local)
             )
         elif self.default_local_catalog_path.exists():
             self._logger.info(
@@ -334,29 +334,28 @@ class AuctionFinder:
                 self.default_local_catalog_path,
             )
             auctions_from_local = self._load_auctions_from_local_catalog(
-                catalog_path=self.default_local_catalog_path
+                catalog_path=str(self.default_local_catalog_path)
             )
             self._logger.info(
-                "Default local catalog has %d auctions total.", len(auctions_from_local)
+                "Default catalog has %d auctions.", len(auctions_from_local)
             )
         else:
             self._logger.info("No local catalog provided.")
 
-        # Merge data if both sources are present
+        # If both sources provide data, merge the auctions.
         if auctions_from_foundry and auctions_from_local:
             return self._enrich_auctions_with_catalog_data(
                 foundry_auctions=auctions_from_foundry,
                 local_catalog_auctions=auctions_from_local,
             )
-        elif auctions_from_foundry:
+        if auctions_from_foundry:
             return auctions_from_foundry
-        elif auctions_from_local:
+        if auctions_from_local:
             return auctions_from_local
 
-        # If no data sources were provided, raise an error
         raise ValueError(
-            "You must provide either 'project_id' to fetch from Foundry "
-            "or 'local_catalog_path' to load a static catalog, or both."
+            "You must provide either 'project_id' to fetch from Foundry or "
+            "'local_catalog_path' to load a static catalog, or both."
         )
 
     def find_matching_auctions(
@@ -365,14 +364,15 @@ class AuctionFinder:
         auctions: List[Auction],
         criteria: ResourcesSpecification,
     ) -> List[Auction]:
-        """Filters a list of Auctions to those matching the given `ResourcesSpecification`.
+        """
+        Filters the provided auctions based on the supplied ResourcesSpecification.
 
         Args:
-            auctions: A list of `Auction` objects.
-            criteria: The desired resource specification.
+            auctions: List of Auction objects to filter.
+            criteria: ResourcesSpecification containing the desired attributes.
 
         Returns:
-            A list of auctions that meet all the criteria.
+            A list of Auction objects that satisfy all the specified criteria.
         """
         self._logger.debug(
             "Filtering %d auctions with criteria: %s", len(auctions), criteria
@@ -390,49 +390,13 @@ class AuctionFinder:
         )
         return matching_auctions
 
-    def _resolve_local_catalog_path(
-        self,
-        *,
-        path: Optional[Path],
-    ) -> Optional[Path]:
-        """Resolves a valid path to the local auction catalog, if any.
-
-        If `path` is None, attempts to use a default path:
-          `<repo_root>/my_auction_catalog.yaml`.
-
-        Args:
-            path: The user-specified `Path` to the local catalog or None.
-
-        Returns:
-            A `Path` object if the file exists, otherwise None. Logs warnings as needed.
-        """
-        if path is not None:
-            if path.exists():
-                return path
-            self._logger.warning(
-                "Local catalog path specified (%s), but file does not exist. "
-                "Auction augmentation will proceed without local catalog.",
-                path,
-            )
-            return None
-
-        # If no path is provided, try the default location
-        default_path = Path(__file__).parent.parent.parent / "my_auction_catalog.yaml"
-        if default_path.exists():
-            self._logger.debug(
-                "No local_catalog_path specified; using default path: %s", default_path
-            )
-            return default_path
-
-        self._logger.debug(
-            "No local catalog provided, and default path %s does not exist. "
-            "Auction augmentation will proceed without a local catalog.",
-            default_path,
-        )
-        return None
-
+    # --------------------------------------------------------------------------
+    # Private Helper Methods: Catalog Loading & Enrichment
+    # --------------------------------------------------------------------------
     def _load_instance_catalog(self) -> None:
-        """Loads the local instance catalog from `_local_catalog_path` into memory."""
+        """
+        Loads the local instance catalog from self.local_catalog_path into memory.
+        """
         if not self.local_catalog_path:
             return
 
@@ -440,8 +404,7 @@ class AuctionFinder:
             with open(self.local_catalog_path, "r", encoding="utf-8") as f:
                 self._instance_catalog = yaml.safe_load(f) or {}
             self._logger.info(
-                "Successfully loaded local catalog from %s",
-                self.local_catalog_path,
+                "Successfully loaded local catalog from %s", self.local_catalog_path
             )
         except Exception as exc:
             self._logger.error(
@@ -454,16 +417,17 @@ class AuctionFinder:
             ) from exc
 
     def _load_auctions_from_local_catalog(self, *, catalog_path: str) -> List[Auction]:
-        """Loads auctions from a local static YAML file.
+        """
+        Loads auctions from a local static YAML file.
 
         Args:
-            catalog_path: File path to the YAML catalog.
+            catalog_path: File path to the YAML auction catalog.
 
         Returns:
-            A flat list of `Auction` objects parsed from the YAML.
+            A list of Auction objects parsed from the YAML file.
 
         Raises:
-            AuctionCatalogError: If there's any issue reading or parsing the catalog.
+            AuctionCatalogError: If reading or parsing the file fails.
         """
         try:
             with open(catalog_path, "r", encoding="utf-8") as file:
@@ -491,7 +455,6 @@ class AuctionFinder:
         #   ...
         # }
         for gpu_label, region_map in raw_data.items():
-            # Each `gpu_label` typically maps to a dict of region -> list of auctions
             if not isinstance(region_map, dict):
                 continue
 
@@ -502,37 +465,31 @@ class AuctionFinder:
                 for entry in auctions_list:
                     base_auction = entry.get("base_auction", {})
                     auction_obj = self._create_auction_from_dict(
-                        base_auction_dict=base_auction,
-                        fallback_region_name=region_name,
+                        base_auction_dict=base_auction, fallback_region_name=region_name
                     )
                     if auction_obj is not None:
                         all_auctions.append(auction_obj)
 
         self._logger.info(
-            "Loaded %d auctions total from catalog '%s'.",
-            len(all_auctions),
-            catalog_path,
+            "Loaded %d auctions from catalog '%s'.", len(all_auctions), catalog_path
         )
         return all_auctions
 
     def _create_auction_from_dict(
-        self,
-        *,
-        base_auction_dict: Dict[str, Any],
-        fallback_region_name: str,
+        self, *, base_auction_dict: Dict[str, Any], fallback_region_name: str
     ) -> Optional[Auction]:
-        """Creates an `Auction` from a `base_auction` entry in the local YAML.
+        """
+        Creates an Auction object from a dictionary containing base auction data.
 
         Args:
-            base_auction_dict: Dictionary containing `'base_auction'` data.
-            fallback_region_name: Region name gleaned from the YAML hierarchy
-                if not present in the dict.
+            base_auction_dict: Dictionary with auction attributes.
+            fallback_region_name: Region name derived from YAML structure if not provided.
 
         Returns:
-            An `Auction` object or None if there's an error.
+            An Auction instance if parsing is successful, otherwise None.
         """
         try:
-            mapped_data = {
+            mapped_data: Dict[str, Any] = {
                 "cluster_id": base_auction_dict.get("id"),
                 "gpu_type": base_auction_dict.get("gpu_type"),
                 "inventory_quantity": base_auction_dict.get("inventory_quantity"),
@@ -554,7 +511,7 @@ class AuctionFinder:
             }
             auction_obj = Auction(**mapped_data)
             return auction_obj
-        except Exception as exc:  # Could be KeyError, ValidationError, etc.
+        except Exception as exc:
             self._logger.warning(
                 "Failed to parse an auction in region '%s': %s",
                 fallback_region_name,
@@ -563,48 +520,40 @@ class AuctionFinder:
             return None
 
     def _enrich_auctions_with_catalog_data(
-        self,
-        *,
-        foundry_auctions: List[Auction],
-        local_catalog_auctions: List[Auction],
+        self, *, foundry_auctions: List[Auction], local_catalog_auctions: List[Auction]
     ) -> List[Auction]:
-        """Enriches Foundry auctions with missing fields from a local catalog.
-
-        Merges data by matching on the `instance_type_id`. For each Foundry auction,
-        any missing fields are filled from the local catalog if a matching
-        `instance_type_id` is found.
+        """
+        Enriches auctions fetched from Foundry with data from the local catalog.
+        Merging is done by matching on the instance_type_id.
 
         Args:
-            foundry_auctions: A list of auctions fetched from Foundry.
-            local_catalog_auctions: A list of auctions from the static catalog.
+            foundry_auctions: List of auctions from Foundry.
+            local_catalog_auctions: List of auctions from the local catalog.
 
         Returns:
-            A list of auctions with enriched data where possible.
+            A list of Auction objects with merged data where available.
         """
         self._logger.debug("Enriching Foundry auctions with local catalog data...")
-
-        local_by_instance_type: Dict[str, Auction] = {}
-        for local_auction in local_catalog_auctions:
-            if local_auction.instance_type_id:
-                local_by_instance_type[local_auction.instance_type_id] = local_auction
+        local_by_instance_type: Dict[str, Auction] = {
+            local_auction.instance_type_id: local_auction
+            for local_auction in local_catalog_auctions
+            if local_auction.instance_type_id
+        }
 
         enriched_list: List[Auction] = []
 
         for foundry_auction in foundry_auctions:
             if not foundry_auction.instance_type_id:
-                # If there's no instance_type_id, we can't match it. Keep as is.
                 enriched_list.append(foundry_auction)
                 continue
 
             local_match = local_by_instance_type.get(foundry_auction.instance_type_id)
             if not local_match:
-                # No local data to enrich with
                 enriched_list.append(foundry_auction)
                 continue
 
-            # Merge: fill missing Foundry fields with local data
             merged = Auction(
-                cluster_id=(foundry_auction.cluster_id or local_match.cluster_id),
+                cluster_id=foundry_auction.cluster_id or local_match.cluster_id,
                 gpu_type=foundry_auction.gpu_type or local_match.gpu_type,
                 inventory_quantity=(
                     foundry_auction.inventory_quantity
@@ -620,8 +569,8 @@ class AuctionFinder:
                     foundry_auction.internode_interconnect
                     or local_match.internode_interconnect
                 ),
-                fcp_instance=(foundry_auction.fcp_instance or local_match.fcp_instance),
-                instance_type_id=foundry_auction.instance_type_id,  # keep Foundry's
+                fcp_instance=foundry_auction.fcp_instance or local_match.fcp_instance,
+                instance_type_id=foundry_auction.instance_type_id,  # prefer Foundry's value
                 last_price=foundry_auction.last_price or local_match.last_price,
                 region=foundry_auction.region or local_match.region,
                 region_id=foundry_auction.region_id or local_match.region_id,
@@ -633,7 +582,7 @@ class AuctionFinder:
             enriched_list.append(merged)
 
         self._logger.info(
-            "Enriched %d Foundry auctions with local data. Returning %d total.",
+            "Enriched %d Foundry auctions with local catalog data. Returning %d total.",
             len(foundry_auctions),
             len(enriched_list),
         )

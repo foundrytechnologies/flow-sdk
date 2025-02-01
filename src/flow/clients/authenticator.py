@@ -1,3 +1,15 @@
+"""Module for handling user authentication and access token retrieval.
+
+This module provides the Authenticator class, which is responsible for
+authenticating a user by sending HTTP requests to the configured authentication
+API and retrieving an access token.
+
+Example:
+    To use the Authenticator, simply instantiate the class with valid credentials:
+        auth = Authenticator(email="user@example.com", password="securepassword")
+        token = auth.get_access_token()
+"""
+
 import logging
 import os
 from typing import Any, Dict, Optional
@@ -18,17 +30,17 @@ logger = logging.getLogger(__name__)
 class Authenticator:
     """Handles user authentication and access token retrieval.
 
-    This class encapsulates logic for sending authentication requests to the FCP auth
-    API and storing the resulting access token. Upon initialization, the class
-    immediately attempts to authenticate using provided credentials.
+    This class encapsulates the logic for authenticating against the API and
+    storing the access token. Authentication is performed immediately during
+    initialization.
 
     Attributes:
-        email: The user's email address.
-        password: The user's password.
-        api_url: The base URL for the authentication API.
-        request_timeout: Timeout value, in seconds, for the HTTP request.
-        session: A configured `requests.Session` with a retry strategy.
-        access_token: The string token returned upon successful authentication.
+        email (str): The user's email address.
+        password (str): The user's password.
+        api_url (str): The base URL for the authentication API.
+        request_timeout (int): Timeout value in seconds for HTTP requests.
+        session (requests.Session): A configured session with a retry strategy.
+        access_token (str): The access token retrieved upon successful authentication.
     """
 
     def __init__(
@@ -39,27 +51,31 @@ class Authenticator:
         request_timeout: int = 10,
         max_retries: int = 3,
     ) -> None:
-        """Initializes the Authenticator with user credentials.
+        """Initializes the Authenticator and performs immediate authentication.
 
         Args:
-            email: The user's email address.
-            password: The user's password.
-            api_url: (Optional) The base URL for the authentication API. If not
-                provided, uses 'https://api.mlfoundry.com' or an environment
-                variable named 'API_URL' if set.
-            request_timeout: (Optional) The request timeout in seconds.
+            email (str): The user's email address.
+            password (str): The user's password.
+            api_url (Optional[str]): The base URL for the authentication API.
+                Defaults to the value of the environment variable 'API_URL' or
+                'https://api.mlfoundry.com' if not provided.
+            request_timeout (int): The timeout for HTTP requests in seconds.
                 Defaults to 10.
-            max_retries: (Optional) Maximum number of retry attempts for
-                HTTP requests. Defaults to 3.
+            max_retries (int): The maximum number of retry attempts for HTTP
+                requests. Defaults to 3.
 
         Raises:
-            TypeError: If the email or password is not a string.
-            ValueError: If the email or password is empty.
+            TypeError: If either email or password is not a string.
+            ValueError: If either email or password is empty.
+            AuthenticationError: If authentication fails.
         """
+        # Validate input types.
         if not isinstance(email, str):
             raise TypeError("Email must be a string.")
         if not isinstance(password, str):
             raise TypeError("Password must be a string.")
+
+        # Validate non-empty credentials.
         if not email:
             raise ValueError("Email must not be empty.")
         if not password:
@@ -69,17 +85,21 @@ class Authenticator:
         self.password: str = password
         self.api_url: str = api_url or os.getenv("API_URL", "https://api.mlfoundry.com")
         self.request_timeout: int = request_timeout
+
+        # Create a configured HTTP session with a retry strategy.
         self.session: requests.Session = self._create_session(max_retries)
+
+        # Immediately authenticate to retrieve the access token.
         self.access_token: str = self.authenticate()
 
     def _create_session(self, max_retries: int) -> requests.Session:
-        """Creates and configures an HTTP session with a retry strategy.
+        """Creates and configures an HTTP session with retry behavior.
 
         Args:
-            max_retries: Maximum number of retry attempts for HTTP requests.
+            max_retries (int): Maximum number of retry attempts for HTTP requests.
 
         Returns:
-            A configured `requests.Session` object with retry behavior.
+            requests.Session: A session object configured with a retry strategy.
         """
         session = requests.Session()
         retry_strategy = Retry(
@@ -94,40 +114,33 @@ class Authenticator:
         session.mount("http://", adapter)
 
         logger.debug(
-            "Created a new HTTP session with retries configured.",
-            extra={
-                "max_retries": max_retries,
-                "backoff_factor": 0.5,
-            },
+            "Created a new HTTP session with retry configuration.",
+            extra={"max_retries": max_retries, "backoff_factor": 0.5},
         )
         return session
 
     def authenticate(self) -> str:
         """Authenticates the user and retrieves an access token.
 
-        Sends a POST request to the configured API URL with the user credentials.
+        Sends a POST request with the user's credentials to the authentication API
+        endpoint. If the request is successful and an access token is returned, it is
+        stored and returned. Otherwise, appropriate exceptions are raised.
 
         Returns:
-            The retrieved access token as a string.
+            str: The access token retrieved from the authentication API.
 
         Raises:
-            InvalidCredentialsError: If the provided credentials are invalid.
+            InvalidCredentialsError: If the credentials are invalid (e.g., HTTP 401).
             NetworkError: If a network-related error occurs.
-            TimeoutError: If the authentication request times out.
-            AuthenticationError: If any other authentication-related error occurs.
+            TimeoutError: If the request times out.
+            AuthenticationError: For other authentication-related failures.
         """
-        auth_payload: Dict[str, str] = {
-            "email": self.email,
-            "password": self.password,
-        }
+        auth_payload: Dict[str, str] = {"email": self.email, "password": self.password}
         login_url = f"{self.api_url}/login"
 
         logger.debug(
-            "Attempting to authenticate user.",
-            extra={
-                "url": login_url,
-                "email_provided": bool(self.email),
-            },
+            "Attempting user authentication.",
+            extra={"url": login_url, "email_provided": bool(self.email)},
         )
 
         try:
@@ -149,7 +162,7 @@ class Authenticator:
             logger.exception("General request exception during authentication.")
             raise AuthenticationError("Authentication request failed.") from req_error
 
-        # Handle HTTP error responses
+        # Check for HTTP errors.
         if response.status_code >= 400:
             logger.error(
                 "Authentication failed.",
@@ -165,31 +178,28 @@ class Authenticator:
                 f"Authentication failed with status code {response.status_code}."
             )
 
-        # Parse JSON response
+        # Parse the JSON response.
         try:
             response_data: Dict[str, Any] = response.json()
         except ValueError as json_error:
-            logger.exception("Unable to decode the response as JSON.")
+            logger.exception("Unable to decode response as JSON.")
             raise AuthenticationError("Invalid response format.") from json_error
 
         access_token: Optional[str] = response_data.get("access_token")
         if not access_token:
             logger.error(
                 "Access token not found in response.",
-                extra={
-                    "response_data": response_data,
-                    "url": login_url,
-                },
+                extra={"response_data": response_data, "url": login_url},
             )
             raise AuthenticationError("Access token not found in response.")
 
-        logger.info("Authentication succeeded and access token retrieved.")
+        logger.info("User authenticated successfully; access token retrieved.")
         return access_token
 
     def get_access_token(self) -> str:
-        """Retrieves the authenticated access token.
+        """Retrieves the stored access token.
 
         Returns:
-            The access token string.
+            str: The authenticated access token.
         """
         return self.access_token

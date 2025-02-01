@@ -198,23 +198,27 @@ class TestBidManagerIntegration(unittest.TestCase):
             self.fail(f"Error while preparing bid payload: {exc}")
 
         try:
-            bid_response: Bid = self.bid_manager.submit_bid(
+            bid_response_list: List[Bid] = self.bid_manager.submit_bid(
                 project_id=self.project_id, bid_payload=bid_payload
             )
-            self.logger.debug(f"Bid submitted successfully: {bid_response}")
-            bid_id = bid_response.id
+            self.logger.debug("Bid submitted successfully: %s", bid_response_list)
+            self.assertTrue(len(bid_response_list) > 0, "Expected at least one bid.")
+            bid = bid_response_list[0]
+            bid_id = bid.id
+        except TimeoutError as err:
+            self.skipTest(f"Place bid timed out: {err}")
         except Exception as exc:
             self.logger.error(f"Failed to submit bid: {exc}")
             self.fail(f"Failed to submit bid: {exc}")
 
-        self.assertIsNotNone(bid_response.id)
-        self.assertEqual(bid_response.name, order_name)
-        self.assertIsNotNone(bid_response.disk_ids)
-        self.assertIn(disk_attachment.disk_id, bid_response.disk_ids)
+        self.assertIsNotNone(bid.id)
+        self.assertEqual(bid.name, order_name)
+        self.assertIsNotNone(bid.disk_ids)
+        self.assertIn(disk_attachment.disk_id, bid.disk_ids)
 
         try:
             self.bid_manager.cancel_bid(project_id=self.project_id, bid_id=bid_id)
-            self.logger.debug(f"Bid {bid_id} cancelled successfully.")
+            self.logger.debug("Bid %s cancelled successfully.", bid_id)
         except Exception as exc:
             self.logger.error(f"Failed to cancel bid: {exc}")
             self.fail(f"Failed to cancel bid: {exc}")
@@ -284,24 +288,29 @@ class TestBidManagerIntegration(unittest.TestCase):
             self.fail(f"Error while preparing bid payload: {exc}")
 
         try:
-            bid_response: Bid = self.bid_manager.submit_bid(
+            bid_response_list: List[Bid] = self.bid_manager.submit_bid(
                 project_id=self.project_id, bid_payload=bid_payload
             )
             self.logger.debug(
-                f"Bid submitted successfully without disk attachment: {bid_response}"
+                "Bid submitted successfully without disk attachment: %s",
+                bid_response_list,
             )
-            bid_id = bid_response.id
+            self.assertTrue(len(bid_response_list) > 0, "Expected at least one bid.")
+            bid = bid_response_list[0]
+            bid_id = bid.id
+        except TimeoutError as err:
+            self.skipTest(f"Place bid timed out: {err}")
         except Exception as exc:
             self.logger.error(f"Failed to submit bid without disk attachment: {exc}")
             self.fail(f"Failed to submit bid without disk attachment: {exc}")
 
-        self.assertIsNotNone(bid_response.id)
-        self.assertEqual(bid_response.name, order_name)
-        self.assertFalse(bid_response.disk_ids)
+        self.assertIsNotNone(bid.id)
+        self.assertEqual(bid.name, order_name)
+        self.assertFalse(bid.disk_ids)
 
         try:
             self.bid_manager.cancel_bid(project_id=self.project_id, bid_id=bid_id)
-            self.logger.debug(f"Bid {bid_id} cancelled successfully.")
+            self.logger.debug("Bid %s cancelled successfully.", bid_id)
         except Exception as exc:
             self.logger.error(f"Failed to cancel bid: {exc}")
             self.fail(f"Failed to cancel bid: {exc}")

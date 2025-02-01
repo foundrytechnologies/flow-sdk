@@ -102,8 +102,8 @@ class TestBidManager(unittest.TestCase):
             "startup_script": "#!/bin/bash\necho Hello World",
             "user_id": "user456",
         }
-        self.mock_foundry_client.place_bid.return_value = Bid(**response_data)
-        response: Bid = self.bid_manager.submit_bid(
+        self.mock_foundry_client.place_bid.return_value = [Bid(**response_data)]
+        bid_response_list: List[Bid] = self.bid_manager.submit_bid(
             project_id=self.project_id, bid_payload=self.bid_payload
         )
         self.mock_foundry_client.place_bid.assert_called_once_with(
@@ -111,7 +111,7 @@ class TestBidManager(unittest.TestCase):
             bid_payload=self.bid_payload,
         )
         expected_bid = Bid(**response_data)
-        self.assertEqual(response, expected_bid)
+        self.assertEqual(bid_response_list, [expected_bid])
 
     def test_submit_bid_api_failure(self) -> None:
         """Tests that an exception is raised for API failures."""

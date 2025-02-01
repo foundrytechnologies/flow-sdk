@@ -16,7 +16,7 @@ import argparse
 import logging
 import sys
 import traceback
-from typing import Optional
+from typing import Optional, List
 
 from flow.config import get_config
 from flow.clients.foundry_client import FoundryClient
@@ -135,7 +135,12 @@ def run_submit_command(
 
     logger.info("Running the flow task manager.")
     task_manager.run()
-    logger.info("Flow task manager completed successfully.")
+    # (Optional: retrieve bids from FoundryClient if needed)
+    bids = bid_manager.get_bids(
+        project_id=config_parser.config.project_id
+    )  # type: List[Bid]
+    bid_ids = ", ".join(b.id for b in bids if b.id)
+    logger.info("Bid(s) submitted successfully with bid id(s): %s", bid_ids)
 
 
 def run_status_command(

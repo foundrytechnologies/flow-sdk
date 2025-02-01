@@ -112,24 +112,27 @@ class StartupScriptBuilder:
 
     def __init__(
         self,
-        base_script: str = "#!/bin/bash\nset -ex\n",
-        templates_file_path: Optional[str] = None,
         logger: Optional[logging.Logger] = None,
+        base_script: Optional[str] = None,
+        templates_file_path: Optional[str] = None,
     ) -> None:
         """
         Args:
+            logger: Optional logger instance.
             base_script: Initial script text (e.g., shebang + shell flags).
             templates_file_path: Path to the YAML file containing Jinja templates.
-            logger: Optional logger instance.
         """
         self.logger: logging.Logger = logger if logger else NoOpLogger()
+        # We use a default base script if none provided.
+        self.base_script = base_script or "#!/bin/bash\nset -ex\n"
+        self.templates_file_path = templates_file_path
+
         self.logger.debug(
-            msg="Initializing StartupScriptBuilder with base_script=%r, templates_file_path=%r",
-            base_script=base_script,
-            templates_file_path=templates_file_path,
+            "Initializing StartupScriptBuilder with base_script=%r, templates_file_path=%r",
+            self.base_script,
+            self.templates_file_path
         )
 
-        self.base_script = base_script
         self.segments: List[ScriptSegmentBuilder] = []
         self.templates: Dict[str, str] = {}
 
@@ -274,7 +277,7 @@ class StartupScriptBuilder:
     ) -> None:
         """
         Inject persistent storage logic using the 'persistent_storage_segment' template.
-    
+
         Args:
             persistent_storage: Configuration for persistent storage, e.g. block or file share.
         """
@@ -286,7 +289,7 @@ class StartupScriptBuilder:
                 "No persistent storage config provided; skipping injection."
             )
             return
-    
+
         # Support backward compatibility:
         # If persistent_storage has a 'mount_points' attribute, use it.
         # Otherwise, if it has a 'mount_dir' attribute, wrap it into a list.
@@ -300,13 +303,13 @@ class StartupScriptBuilder:
                 "No persistent storage mount_points provided; skipping injection."
             )
             return
-    
+
         template_key = "persistent_storage_segment"
         if template_key not in self.templates:
             warning_msg = f"Template '{template_key}' not found in loaded templates."
             self.logger.warning(warning_msg)
             return
-    
+
         self.logger.debug("Using mount_points: %s", mount_points)
         segment_builder = JinjaTemplateSegmentBuilder(
             template_str=self.templates[template_key],

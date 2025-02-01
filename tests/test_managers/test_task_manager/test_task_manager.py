@@ -396,11 +396,13 @@ class TestFlowTaskManager(unittest.TestCase):
                 region_id="us-central1-a",
             )
         ]
-        self.foundry_client.place_bid.return_value = Bid(
-            id="bid-123",
-            name="test-task",
-            status="active",
-        )
+        self.foundry_client.place_bid.return_value = [
+            Bid(
+                id="bid-123",
+                name="test-task",
+                status="active",
+            )
+        ]
         self.task_manager._prepare_and_submit_bid(
             matching_auctions=matching_auctions,
             resources_specification=self.config.resources_specification,
