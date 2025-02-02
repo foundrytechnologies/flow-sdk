@@ -434,14 +434,16 @@ class BidService:
                         disk_ids=[],  # Extend extraction logic as needed.
                         cluster_id=request_data.get("cluster_id", "unknown"),
                         instance_quantity=request_data.get("instance_quantity", 1),
-                        instance_type_id=request_data.get(
-                            "instance_type_id", "unknown"
-                        ),
+                        instance_type_id=request_data.get("instance_type_id", "unknown"),
                         limit_price_cents=request_data.get("limit_price_cents", 0),
                     )
-                    response._content = dummy_bid.model_dump_json().encode("utf-8")
-                    response.headers["Content-Type"] = "application/json"
-                    return response
+                    # Create a new Response instance instead of modifying the existing (mock) response.
+                    from requests import Response
+                    dummy_response = Response()
+                    dummy_response.status_code = 200
+                    dummy_response._content = dummy_bid.model_dump_json().encode("utf-8")
+                    dummy_response.headers["Content-Type"] = "application/json"
+                    return dummy_response
             return None
 
         response: Response = self._http_client.request(
@@ -477,12 +479,22 @@ class BidService:
         self._logger.debug(
             "Canceling bid with bid_id=%s for project_id=%s", bid_id, project_id
         )
-        self._http_client.request(method="DELETE", path=path)
-        self._logger.info(
-            "Successfully canceled bid with bid_id=%s for project_id=%s",
-            bid_id,
-            project_id,
-        )
+        try:
+            self._http_client.request(method="DELETE", path=path)
+            self._logger.info(
+                "Successfully canceled bid with bid_id=%s for project_id=%s",
+                bid_id,
+                project_id,
+            )
+        except APIError as err:
+            # If the bid is not found, treat it as already canceled.
+            if "Bid not found" in str(err):
+                self._logger.warning(
+                    "Bid %s not found during cancellation; it may have already been canceled.",
+                    bid_id,
+                )
+            else:
+                raise
 
 
 class FCPClient:

@@ -49,6 +49,7 @@ class HTTPClient:
         self._timeout: int = timeout
         self._logger: logging.Logger = logger
         self._session: requests.Session = self._create_session(max_retries)
+        self._max_retries: int = max_retries
         self._session.headers.update(
             {
                 "Authorization": f"Bearer {token}",
@@ -111,54 +112,63 @@ class HTTPClient:
             "Preparing %s request to %s with kwargs=%s", method, url, kwargs
         )
 
-        try:
-            response: Response = self._session.request(method=method, url=url, **kwargs)
-        except requests.exceptions.Timeout as err:
-            self._logger.error("Request to %s timed out: %s", url, err)
-            raise TimeoutError("Request timed out") from err
-        except requests.exceptions.ConnectionError as err:
-            self._logger.error(
-                "Network error occurred while requesting %s: %s", url, err
-            )
-            raise NetworkError("Network error occurred") from err
-        except requests.exceptions.RequestException as err:
-            self._logger.error("Request failed for %s: %s", url, err)
-            raise APIError(f"Request failed: {err}") from err
-
-        if response.status_code >= 400:
-            content_type: str = response.headers.get("Content-Type", "")
+        attempt: int = 0
+        while True:
             try:
-                if "application/json" in content_type:
-                    parsed_json: Any = response.json()
-                    error_content_str: str = json.dumps(parsed_json)
-                else:
-                    error_content_str = response.text
-            except ValueError:
+                response: Response = self._session.request(method=method, url=url, **kwargs)
+            except requests.exceptions.Timeout as err:
+                self._logger.error("Request to %s timed out: %s", url, err)
+                raise TimeoutError("Request timed out") from err
+            except requests.exceptions.ConnectionError as err:
+                self._logger.error("Network error occurred while requesting %s: %s", url, err)
+                raise NetworkError("Network error occurred") from err
+            except requests.exceptions.RequestException as err:
+                self._logger.error("Request failed for %s: %s", url, err)
+                raise APIError(f"Request failed: {err}") from err
+
+            if response.status_code < 400:
+                self._logger.debug("Request to %s succeeded with status_code=%d", url, response.status_code)
+                return response
+
+            # For retriable statuses, retry until max_retries is reached.
+            if response.status_code in (429, 500, 502, 503, 504) and attempt < self._max_retries:
+                attempt += 1
+                self._logger.warning(
+                    "Request failed with status %d. Retrying attempt %d/%d",
+                    response.status_code,
+                    attempt,
+                    self._max_retries,
+                )
+                continue
+            else:
+                break
+
+        try:
+            if "application/json" in response.headers.get("Content-Type", ""):
+                parsed_json: Any = response.json()
+                error_content_str: str = json.dumps(parsed_json)
+            else:
                 error_content_str = response.text
+        except (ValueError, TypeError):
+            error_content_str = response.text
 
-            status_code: int = response.status_code
-            self._logger.error(
-                "HTTP error occurred. status_code=%d, response=%s",
-                status_code,
-                error_content_str,
-            )
-
-            if error_handler is not None:
-                mock_err: requests.HTTPError = requests.HTTPError(error_content_str)
-                mock_err.response = response
-                handled_resp: Optional[Response] = error_handler(mock_err)
-                if handled_resp is not None:
-                    return handled_resp
-
-            if status_code in (401, 403):
-                raise AuthenticationError("Authentication token is invalid")
-
-            raise APIError(f"API request failed [{status_code}]: {error_content_str}")
-
-        self._logger.debug(
-            "Request to %s succeeded with status_code=%d", url, response.status_code
+        self._logger.error(
+            "HTTP error occurred. status_code=%d, response=%s",
+            response.status_code,
+            error_content_str,
         )
-        return response
+
+        if error_handler is not None:
+            mock_err: requests.HTTPError = requests.HTTPError(error_content_str)
+            mock_err.response = response
+            handled_resp: Optional[Response] = error_handler(mock_err)
+            if handled_resp is not None:
+                return handled_resp
+
+        if response.status_code in (401, 403):
+            raise AuthenticationError("Authentication token is invalid")
+
+        raise APIError(f"API request failed [{response.status_code}]: {error_content_str}")
 
     def parse_json(self, response: Response, *, context: str = "") -> Any:
         """Parse JSON content from an HTTP response.
