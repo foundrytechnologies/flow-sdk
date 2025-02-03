@@ -31,4 +31,10 @@ ENV/
 
 # Ignore generate_catalogue and catalogue_manager
 src/flow/scripts/generate_catalogue.py
-src/flow/managers/catalogue_manager.py 
+src/flow/managers/catalogue_manager.py
+
+# Ignore log files
+coverage_debug.log
+
+# Ignore packaging metadata
+flow.egg-info/
