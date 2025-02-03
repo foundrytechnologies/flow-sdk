@@ -423,9 +423,9 @@ class BidService:
                     error_str: str = json.dumps(error_content).lower()
                 except ValueError:
                     error_str = response.text.lower()
-                if "bid already exists" in error_str or "order named" in error_str:
+                if "order named" in error_str and "already exists" in error_str:
                     self._logger.info(
-                        "Duplicate bid detected; returning idempotent response."
+                        "Duplicate bid detected; treating as success with idempotent response."
                     )
                     dummy_bid: BidResponse = BidResponse.dummy_response(
                         order_name=payload.order_name,
@@ -439,7 +439,6 @@ class BidService:
                         ),
                         limit_price_cents=request_data.get("limit_price_cents", 0),
                     )
-                    # Create a new Response instance instead of modifying the existing (mock) response.
                     from requests import Response
 
                     dummy_response = Response()
@@ -448,6 +447,7 @@ class BidService:
                         "utf-8"
                     )
                     dummy_response.headers["Content-Type"] = "application/json"
+                    dummy_response.reason = "OK"
                     return dummy_response
             return None
 
