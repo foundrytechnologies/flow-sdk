@@ -23,7 +23,7 @@
 4. Check the status of your submitted task:
    » flow status
 
-Note, we have yet to tune the CLI/ to be more ergonomic and stylish. More work to do on the UI. Placeholder UI logic is in the 'formatters' folder. 
+Note, we have yet to tune the CLI to be more ergonomic and stylish. More work to do on the UI. Placeholder UI logic is in the 'formatters' folder. 
 
 5. Look through and experiment with the flow_sdk_quickstart.ipynb file, which contains an interactive notebookquickstart guide to using the Foundry SDK.
 
@@ -34,10 +34,9 @@ Note, we have yet to tune the CLI/ to be more ergonomic and stylish. More work t
 ### Preaamble
 It was not the intention that most developers would interact with the base auction structures. 
 
-The fact they are willing to do so at any non-neglible scale is inspiring, frankly. The early user willingness is strong evidence of the importance of economics for this class of users. 
+The fact they are willing to do so at any non-neglible scale is inspiring, frankly. The early user willingness is strong evidence of the importance of economics and elasticity** for this class of users. 
 
 Our intention is that these auction mechanisms would define the base structures, which Foundry itself and power-user FinOps leads would primarily use, whilst most external users use hierarchical and convenience structures to submit jobs and associated requests. 
-
 
 Here, I want to kickstart some practitioner-centric UX focus threads. In particular, we need to improve the simplicity of using our CLI/API to request and manage resources in Foundry. 
 
@@ -51,14 +50,13 @@ Most users think of their experiments not in terms of tasks, per se, but rather 
 * Specification of <u>multiple tasks</u> to be executed independently or in succession. 
 
 
-
 ### Tasks
 
 A **task** specification maps to a requests for infrastructure from FCP. 
 
 FCP's scheduling mechanism is inspired by economic concepts of **utility** and **surplus maximation**. 
 
-We internally leverage a **second-price auction** mechanism, which helps ensure that infrastructure is put to <u>best-use</u> whilst allowing users to state their job's *utility* <u>truthfully</u>, since they won't be charged their **utility_threshold_price**, but rather the **second_price** of the job their job is displaying when there is overlapping demand for all resources (or the minimum threshold price, when excess nodes are available.) 
+We internally leverage a **second-price auction** mechanism, which helps ensure that infrastructure is put to <u>best-use</u> whilst allowing users to state their job's *utility* <u>truthfully</u>, since they won't be charged their **utility_threshold_price**, but rather the **second_price** of the job their job is displacing when there is overlapping demand for all resources (or the minimum threshold price, when excess nodes are available.) 
 
 Under this mechanism, the game-theoretically optimal approach is to state one's utility_threshold_price honestly. 
 
