@@ -434,14 +434,19 @@ class BidService:
                         disk_ids=[],  # Extend extraction logic as needed.
                         cluster_id=request_data.get("cluster_id", "unknown"),
                         instance_quantity=request_data.get("instance_quantity", 1),
-                        instance_type_id=request_data.get("instance_type_id", "unknown"),
+                        instance_type_id=request_data.get(
+                            "instance_type_id", "unknown"
+                        ),
                         limit_price_cents=request_data.get("limit_price_cents", 0),
                     )
                     # Create a new Response instance instead of modifying the existing (mock) response.
                     from requests import Response
+
                     dummy_response = Response()
                     dummy_response.status_code = 200
-                    dummy_response._content = dummy_bid.model_dump_json().encode("utf-8")
+                    dummy_response._content = dummy_bid.model_dump_json().encode(
+                        "utf-8"
+                    )
                     dummy_response.headers["Content-Type"] = "application/json"
                     return dummy_response
             return None

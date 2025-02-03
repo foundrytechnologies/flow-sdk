@@ -115,23 +115,34 @@ class HTTPClient:
         attempt: int = 0
         while True:
             try:
-                response: Response = self._session.request(method=method, url=url, **kwargs)
+                response: Response = self._session.request(
+                    method=method, url=url, **kwargs
+                )
             except requests.exceptions.Timeout as err:
                 self._logger.error("Request to %s timed out: %s", url, err)
                 raise TimeoutError("Request timed out") from err
             except requests.exceptions.ConnectionError as err:
-                self._logger.error("Network error occurred while requesting %s: %s", url, err)
+                self._logger.error(
+                    "Network error occurred while requesting %s: %s", url, err
+                )
                 raise NetworkError("Network error occurred") from err
             except requests.exceptions.RequestException as err:
                 self._logger.error("Request failed for %s: %s", url, err)
                 raise APIError(f"Request failed: {err}") from err
 
             if response.status_code < 400:
-                self._logger.debug("Request to %s succeeded with status_code=%d", url, response.status_code)
+                self._logger.debug(
+                    "Request to %s succeeded with status_code=%d",
+                    url,
+                    response.status_code,
+                )
                 return response
 
             # For retriable statuses, retry until max_retries is reached.
-            if response.status_code in (429, 500, 502, 503, 504) and attempt < self._max_retries:
+            if (
+                response.status_code in (429, 500, 502, 503, 504)
+                and attempt < self._max_retries
+            ):
                 attempt += 1
                 self._logger.warning(
                     "Request failed with status %d. Retrying attempt %d/%d",
@@ -168,7 +179,9 @@ class HTTPClient:
         if response.status_code in (401, 403):
             raise AuthenticationError("Authentication token is invalid")
 
-        raise APIError(f"API request failed [{response.status_code}]: {error_content_str}")
+        raise APIError(
+            f"API request failed [{response.status_code}]: {error_content_str}"
+        )
 
     def parse_json(self, response: Response, *, context: str = "") -> Any:
         """Parse JSON content from an HTTP response.

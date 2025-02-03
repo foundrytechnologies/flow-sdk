@@ -39,7 +39,12 @@ from flow.models import (
     SshKey,
     User,
 )
-from flow.utils.exceptions import APIError, AuthenticationError, TimeoutError, NetworkError
+from flow.utils.exceptions import (
+    APIError,
+    AuthenticationError,
+    TimeoutError,
+    NetworkError,
+)
 
 
 class TestFCPClient(unittest.TestCase):
@@ -53,7 +58,7 @@ class TestFCPClient(unittest.TestCase):
         self.mock_session_class = self._session_patcher.start()
         self.addCleanup(self._session_patcher.stop)
         self.mock_session_instance = self.mock_session_class.return_value
-        self.mock_session_instance.headers = {} 
+        self.mock_session_instance.headers = {}
 
         self.mock_response: MagicMock = MagicMock(spec=Response)
         self.mock_response.status_code = 200
@@ -73,7 +78,11 @@ class TestFCPClient(unittest.TestCase):
 
         self.user_id: str = "123"
         user_data: User = User(id=self.user_id, name="Test User")
-        with patch("flow.clients.fcp_client.UserService.get_user", autospec=True, return_value=user_data):
+        with patch(
+            "flow.clients.fcp_client.UserService.get_user",
+            autospec=True,
+            return_value=user_data,
+        ):
             self.client: FCPClient = FCPClient(authenticator=self.mock_authenticator)
 
     def tearDown(self) -> None:
@@ -151,7 +160,9 @@ class TestFCPClient(unittest.TestCase):
 
     def test_get_projects_large_response(self) -> None:
         """Test handling of a large JSON response in get_projects."""
-        large_projects = [{"id": f"proj{i}", "name": f"Project {i}"} for i in range(1000)]
+        large_projects = [
+            {"id": f"proj{i}", "name": f"Project {i}"} for i in range(1000)
+        ]
         mock_resp = MagicMock(spec=Response)
         mock_resp.status_code = 200
         mock_resp.json.return_value = large_projects
@@ -249,29 +260,37 @@ class TestFCPClient(unittest.TestCase):
     # -------------------------------------------------------------------------
     def test_retry_exhausted(self) -> None:
         """Simulate repeated 500 errors to ensure APIError is eventually raised."""
+
         def _mock_500(*args, **kwargs) -> MagicMock:
             resp = MagicMock(spec=Response)
             resp.status_code = 500
             resp.ok = False
             resp.text = "Internal Server Error"
-            resp.raise_for_status.side_effect = requests.HTTPError("Internal Server Error")
+            resp.raise_for_status.side_effect = requests.HTTPError(
+                "Internal Server Error"
+            )
             resp.headers = {"Content-Type": "application/json"}
             return resp
 
-        self.mock_session_instance.request.side_effect = [_mock_500() for _ in range(10)]
+        self.mock_session_instance.request.side_effect = [
+            _mock_500() for _ in range(10)
+        ]
         with self.assertRaises(APIError) as ctx:
             self.client.get_user()
         self.assertIn("Internal Server Error", str(ctx.exception))
 
     def test_retry_eventual_success(self) -> None:
         """Simulate transient failures followed by a successful get_user call."""
+
         def _side_effect(*args, **kwargs) -> MagicMock:
             if self.mock_session_instance.request.call_count < 3:
                 resp_fail = MagicMock(spec=Response)
                 resp_fail.status_code = 500
                 resp_fail.ok = False
                 resp_fail.text = "Transient error"
-                resp_fail.raise_for_status.side_effect = requests.HTTPError("Transient error")
+                resp_fail.raise_for_status.side_effect = requests.HTTPError(
+                    "Transient error"
+                )
                 resp_fail.headers = {"Content-Type": "application/json"}
                 return resp_fail
             resp_ok = MagicMock(spec=Response)
@@ -294,7 +313,9 @@ class TestFCPClient(unittest.TestCase):
 
     def test_network_error(self) -> None:
         """Simulate a connection error to ensure NetworkError is raised."""
-        self.mock_session_instance.request.side_effect = requests.ConnectionError("Conn failed")
+        self.mock_session_instance.request.side_effect = requests.ConnectionError(
+            "Conn failed"
+        )
         with self.assertRaises(NetworkError) as ctx:
             self.client.get_user()
         self.assertIn("Network error occurred", str(ctx.exception))

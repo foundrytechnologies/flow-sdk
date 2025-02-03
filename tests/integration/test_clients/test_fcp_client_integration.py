@@ -111,7 +111,9 @@ class TestFCPClientIntegration(unittest.TestCase):
             for instance in combined:
                 self.assertIsInstance(instance, Instance)
             logger.info(
-                "Found %d instance(s) in project '%s'.", len(combined), self.project.name
+                "Found %d instance(s) in project '%s'.",
+                len(combined),
+                self.project.name,
             )
         except Exception as err:
             self.fail(f"Failed to fetch instances: {err}")
@@ -174,7 +176,7 @@ class TestFCPClientIntegration(unittest.TestCase):
 
             random_suffix: str = "".join(random.choices(string.ascii_lowercase, k=9))
             order_name: str = f"test-bid-{random_suffix}"
-            
+
             payload: BidPayload = BidPayload(
                 cluster_id=first_auction.cluster_id,
                 instance_quantity=1,
@@ -185,7 +187,7 @@ class TestFCPClientIntegration(unittest.TestCase):
                 ssh_key_ids=[ssh_key_id],
                 user_id=self.client._user_id,  # For testing purposes.
             )
-            
+
             try:
                 bid_response: BidResponse = self.client.place_bid(payload)
             except TimeoutError as err:

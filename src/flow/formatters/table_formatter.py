@@ -8,43 +8,45 @@ from .base_formatter import Formatter
 from ..models.instance import Instance
 from flow.models import Bid
 
-# TODO (jaredquincy): Consider making this configurable.
-DEFAULT_MAX_ROWS = 5
 
-# A constant for missing values.
-MISSING_VALUE = "N/A"
+# TODO (jaredquincy): Consider making this configurable.
+
+DEFAULT_MAX_ROWS: int = 5
+MISSING_VALUE: str = "N/A"
 
 
 class TableFormatter(Formatter):
-    """
-    Formatter for displaying status information in a table format.
+    """Formatter for displaying status information in a table format.
+
+    This class uses rich.Table to render bid and instance data in a structured,
+    human‐readable table. All output is sent to a rich Console instance.
 
     Attributes:
-        max_rows (int): The maximum number of items (bids or instances) to display.
+        max_rows (int): The maximum number of rows to display.
     """
 
     def __init__(self, max_rows: int = DEFAULT_MAX_ROWS) -> None:
-        """
-        Initialize the TableFormatter with a specified maximum number of rows.
+        """Initializes a TableFormatter instance.
 
         Args:
-            max_rows: The maximum number of rows to display for bids/instances.
+            max_rows: Maximum number of rows to display for bids and instances.
         """
         super().__init__()
-        self.max_rows = max_rows
-        self.logger = logging.getLogger(__name__)
+        self.max_rows: int = max_rows
+        self.logger: logging.Logger = logging.getLogger(__name__)
         self.logger.debug("TableFormatter initialized with max_rows=%d", max_rows)
 
     def format_status(self, bids: List[Bid], instances: List[Instance]) -> None:
-        """
-        Format and print bid and instance information to the console.
+        """Formats and prints bid and instance information to the console.
 
         Args:
             bids: A list of Bid objects.
             instances: A list of Instance objects.
         """
         self.logger.info(
-            "Formatting status for %d bids and %d instances.", len(bids), len(instances)
+            "Formatting status for %d bids and %d instances.",
+            len(bids),
+            len(instances),
         )
         self.format_bids(bids)
         self.format_instances(instances)
@@ -55,30 +57,52 @@ class TableFormatter(Formatter):
         default: str = MISSING_VALUE,
         formatter: Optional[Callable[[Any], str]] = None,
     ) -> str:
-        """
-        Helper to safely format a value.
+        """Safely formats a value using an optional custom formatter.
 
         Args:
-            value: The value to format.
-            default: The default string if the value is None or empty.
-            formatter: A callable to format the value if provided.
+            value: The value to be formatted.
+            default: Fallback string if the value is None or empty.
+            formatter: Optional callable that returns a string given the value.
 
         Returns:
-            A formatted string.
+            A string representation of the value.
         """
         if value is None or value == "":
             return default
         if formatter:
             try:
                 return formatter(value)
-            except Exception as e:
-                self.logger.exception("Error formatting value %r: %s", value, e)
+            except Exception as err:
+                self.logger.exception("Error formatting value %r: %s", value, err)
                 return default
         return str(value)
 
-    def format_bids(self, bids: List[Bid]) -> None:
+    @staticmethod
+    def _format_datetime(dt: datetime.datetime) -> str:
+        """Converts a datetime object to a formatted string.
+
+        Args:
+            dt: A datetime object.
+
+        Returns:
+            A string formatted as YYYY-MM-DD HH:MM:SS.
         """
-        Format and print a table of bids to the console.
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+    @staticmethod
+    def _get_instance_start_date(instance: Instance) -> datetime.datetime:
+        """Retrieves the start date of an instance or returns a minimal datetime.
+
+        Args:
+            instance: An Instance object.
+
+        Returns:
+            The start date if present; otherwise, datetime.datetime.min.
+        """
+        return instance.start_date or datetime.datetime.min
+
+    def format_bids(self, bids: List[Bid]) -> None:
+        """Formats and prints a table of bids to the console.
 
         Args:
             bids: A list of Bid objects.
@@ -88,34 +112,30 @@ class TableFormatter(Formatter):
             self.console.print("\n\nNo bids found.", style="bold yellow")
             return
 
-        table = Table(
+        bid_table: Table = Table(
             title="Current Bids",
             title_style="bold",
             header_style="bold",
             border_style="dim",
         )
-        table.add_column("Name", style="cyan")
-        table.add_column("Type", style="green")
-        table.add_column("Quantity", style="blue")
-        table.add_column("Created", style="magenta")
+        bid_table.add_column("Name", style="#1E90FF")
+        bid_table.add_column("Type", style="#00BFFF")
+        bid_table.add_column("Quantity", style="#87CEFA")
+        bid_table.add_column("Created", style="#ADD8E6")
         # TODO: Enable region when available.
-        # table.add_column("Region", style="yellow")
-        table.add_column("Status", style="red")
+        # bid_table.add_column("Region", style="yellow")
+        bid_table.add_column("Status", style="#4169E1")
 
-        # Limit to the maximum number of rows
         for bid in bids[: self.max_rows]:
-            quantity_str = self._safe_format(bid.instance_quantity)
-            # If bid.created_at is a datetime, format it. Otherwise, just use safe_format.
-            created_str = (
-                self._safe_format(
-                    bid.created_at, formatter=lambda d: d.strftime("%Y-%m-%d %H:%M:%S")
-                )
+            quantity_str: str = self._safe_format(bid.instance_quantity)
+            created_str: str = (
+                self._safe_format(bid.created_at, formatter=self._format_datetime)
                 if isinstance(bid.created_at, datetime.datetime)
                 else self._safe_format(bid.created_at)
             )
-            # Use getattr to support the optional 'region' attribute.
-            region_str = self._safe_format(getattr(bid, "region", None))
-            table.add_row(
+            # Compute region_str for potential future use.
+            _ = self._safe_format(getattr(bid, "region", None))
+            bid_table.add_row(
                 self._safe_format(bid.name),
                 self._safe_format(bid.instance_type_id),
                 quantity_str,
@@ -125,11 +145,10 @@ class TableFormatter(Formatter):
             )
 
         self.logger.debug("Displaying %d bid rows.", min(len(bids), self.max_rows))
-        self.console.print(table)
+        self.console.print(bid_table)
 
     def format_instances(self, instances: List[Instance]) -> None:
-        """
-        Format and print a table of instances to the console.
+        """Formats and prints a table of instances to the console.
 
         Args:
             instances: A list of Instance objects.
@@ -139,50 +158,43 @@ class TableFormatter(Formatter):
             self.console.print("No instances found.", style="bold yellow")
             return
 
-        def _get_start_date(instance: Instance) -> datetime.datetime:
-            """
-            Retrieve the instance's start date or use a minimal datetime if missing.
+        # Sort instances by start date in descending order.
+        instances_sorted: List[Instance] = sorted(
+            instances,
+            key=self._get_instance_start_date,
+            reverse=True,
+        )
 
-            Args:
-                instance: The Instance object.
-
-            Returns:
-                A datetime representing the start date or datetime.min if missing.
-            """
-            return instance.start_date or datetime.datetime.min
-
-        # Sort instances by the newest start date first.
-        instances_sorted = sorted(instances, key=_get_start_date, reverse=True)
-
-        table = Table(
+        instance_table: Table = Table(
             title="Current Instances",
             title_style="bold",
             header_style="bold",
             border_style="dim",
         )
-        table.add_column("Name", style="cyan")
-        table.add_column("Type", style="green")
-        table.add_column("Status", style="magenta")
-        table.add_column("Created", style="blue")
+        instance_table.add_column("Name", style="#1E90FF")
+        instance_table.add_column("Type", style="#00BFFF")
+        instance_table.add_column("Status", style="#87CEFA")
+        instance_table.add_column("Created", style="#ADD8E6")
         # TODO: Enable region when available.
-        # table.add_column("Region", style="yellow")
-        table.add_column("IP Address", style="cyan")
-        table.add_column("Category", style="green")
+        # instance_table.add_column("Region", style="yellow")
+        instance_table.add_column("IP Address", style="#4169E1")
+        instance_table.add_column("Category", style="#6495ED")
 
         for instance in instances_sorted[: self.max_rows]:
-            created_str = (
+            created_str: str = (
                 self._safe_format(
                     instance.start_date,
                     default=MISSING_VALUE,
-                    formatter=lambda d: d.strftime("%Y-%m-%d %H:%M:%S"),
+                    formatter=self._format_datetime,
                 )
                 if instance.start_date
                 else MISSING_VALUE
             )
-            table.add_row(
+            instance_table.add_row(
                 self._safe_format(instance.name),
                 self._safe_format(
-                    getattr(instance, "instance_type_id", None), default="Unknown"
+                    getattr(instance, "instance_type_id", None),
+                    default="Unknown",
                 ),
                 self._safe_format(instance.instance_status),
                 created_str,
@@ -194,4 +206,4 @@ class TableFormatter(Formatter):
         self.logger.debug(
             "Displaying %d instance rows.", min(len(instances), self.max_rows)
         )
-        self.console.print(table)
+        self.console.print(instance_table)
