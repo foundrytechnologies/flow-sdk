@@ -1,5 +1,8 @@
 # Installation and Quickstart
 
+NOTE: Flow is currently in preview. This git repo is under active development and may be subject to frequent changes. 
+If you are using Flow, please send a quick note to **contact@mlfoundry.com** so we can keep you updated on the latest changes. 
+
 ## Installation
 1. Ensure you have Python 3.11 or higher installed.  
 2. Install dependencies either by:  
@@ -29,16 +32,7 @@ Note, we have yet to tune the CLI to be more ergonomic and stylish. More work to
 
 ---
 
-# FCP Hierarchical Structures and Ergonomic Improvements 
-
-### Preaamble
-It was not the intention that most developers would interact with the base auction structures. 
-
-The fact they are willing to do so at any non-neglible scale is inspiring, frankly. The early user willingness is strong evidence of the importance of economics and elasticity** for this class of users. 
-
-Our intention is that these auction mechanisms would define the base structures, which Foundry itself and power-user FinOps leads would primarily use, whilst most external users use hierarchical and convenience structures to submit jobs and associated requests. 
-
-Here, I want to kickstart some practitioner-centric UX focus threads. In particular, we need to improve the simplicity of using our CLI/API to request and manage resources in Foundry. 
+# FCP Hierarchical Structures
 
 ## FCP convenience taxonomy
 
