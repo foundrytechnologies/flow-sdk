@@ -212,5 +212,5 @@ startup_script: |
 # [8] Versioning
 # -------------------------------------------------------------------------
 # Indicates the format version of this configuration file.
-version: 1
+version: 1.2
 ```
