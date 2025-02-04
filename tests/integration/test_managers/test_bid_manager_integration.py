@@ -249,12 +249,16 @@ class TestBidManagerIntegration(unittest.TestCase):
         try:
             bids: List[Bid] = self.bid_manager.get_bids(project_id=self.project_id)
             cancelled_bid = next((bid for bid in bids if bid.id == bid_id), None)
-            
+
             # Handle dummy response case where created_at is None
-            if bid.created_at is None:  # This was a dummy response, bid never actually existed
-                self.logger.info("Skipping cancellation verification for dummy bid response")
+            if (
+                bid.created_at is None
+            ):  # This was a dummy response, bid never actually existed
+                self.logger.info(
+                    "Skipping cancellation verification for dummy bid response"
+                )
                 return
-            
+
             self.assertIsNotNone(cancelled_bid)
             self.assertIsNotNone(cancelled_bid.deactivated_at)
             self.logger.debug(f"Bid {bid_id} is confirmed cancelled.")
@@ -372,12 +376,16 @@ class TestBidManagerIntegration(unittest.TestCase):
         try:
             bids: List[Bid] = self.bid_manager.get_bids(project_id=self.project_id)
             cancelled_bid = next((bid for bid in bids if bid.id == bid_id), None)
-            
+
             # Handle dummy response case where created_at is None
-            if bid.created_at is None:  # This was a dummy response, bid never actually existed
-                self.logger.info("Skipping cancellation verification for dummy bid response")
+            if (
+                bid.created_at is None
+            ):  # This was a dummy response, bid never actually existed
+                self.logger.info(
+                    "Skipping cancellation verification for dummy bid response"
+                )
                 return
-            
+
             self.assertIsNotNone(cancelled_bid)
             self.assertIsNotNone(cancelled_bid.deactivated_at)
             self.logger.debug(f"Bid {bid_id} is confirmed cancelled.")
