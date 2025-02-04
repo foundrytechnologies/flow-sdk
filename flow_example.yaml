@@ -10,10 +10,17 @@
 # -------------------------------------------------------------------------
 # A human-readable, descriptive name for this task. Appears in Foundry UIs.
 # NOTE, FCP's current API requires that names be unique
-name: flow-task-config-example
+name: flow-task-config-example-test
 
 # -------------------------------------------------------------------------
-# [2] Foundry Task Management
+# [2] Authentication Parameters
+# -------------------------------------------------------------------------
+# Specify the relevant Foundry project name and SSH key name.
+project_name: my-foundry-project
+ssh_key_name: my-ssh-key
+
+# -------------------------------------------------------------------------
+# [3] Foundry Task Management
 # -------------------------------------------------------------------------
 # Parameters for how Foundry schedules, prices, and manages this task.
 task_management:
@@ -38,7 +45,7 @@ task_management:
   utility_threshold_price: 17.92 # Example low priority custom price for a batch task, 2.24/GPU/hour for H100 SXM5
 
 # -------------------------------------------------------------------------
-# [3] Resource Configuration
+# [4] Resource Configuration
 # -------------------------------------------------------------------------
 # Specify the compute resources needed for the task.
 resources_specification:
@@ -48,7 +55,7 @@ resources_specification:
   # -----------------------------------------------------------------------
   # The name of the GPU instance type. Adjust according to your project's
   # performance requirements or availability in a given Foundry cluster.
-  fcp_instance: a100.1x.SXM4.IB
+  fcp_instance: h100.8x.SXM5.IB
 
   # -----------------------------------------------------------------------
   # 3.2 Number of Instances
@@ -67,7 +74,7 @@ resources_specification:
   cluster_id: us-central1-b  # Where H100 SXM5 instances are available
 
 # -------------------------------------------------------------------------
-# [4] Ports to Expose (Optional)
+# [5] Ports to Expose (Optional)
 # -------------------------------------------------------------------------
 # Define which ports or port ranges to expose for external access, such as for
 # Jupyter or TensorBoard. You can specify single ports (e.g., "8080"), ranges
@@ -84,7 +91,7 @@ ports:
     internal: 8003-8005
 
 # -------------------------------------------------------------------------
-# [5] Storage Configuration (Optional)
+# [6] Storage Configuration (Optional)
 # -------------------------------------------------------------------------
 # Configure persistent storage volumes to be mounted on the task instance.
 # This is particularly useful for sharing data, storing checkpoints, or
@@ -113,7 +120,7 @@ persistent_storage:
   #   mount_point: /mnt/existing-volume
 
 # -------------------------------------------------------------------------
-# [6] Startup Script (Optional)
+# [7] Startup Script (Optional)
 # -------------------------------------------------------------------------
 # Provide commands that will execute upon instance initialization, enabling
 # you to install dependencies or run initial setup tasks automatically.
@@ -124,7 +131,7 @@ startup_script: |
   echo "Setup complete."
 
 # -------------------------------------------------------------------------
-# [7] Versioning
+# [8] Versioning
 # -------------------------------------------------------------------------
 # Indicates the format version of this configuration file.
 version: 1

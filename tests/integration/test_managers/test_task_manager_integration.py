@@ -111,7 +111,7 @@ class TestFlowTaskManagerIntegration(unittest.TestCase):
         self.foundry_client = FoundryClient(
             email=settings.foundry_email,
             password=settings.foundry_password.get_secret_value(),
-            api_key=settings.foundry_api_key,   # allow either
+            api_key=settings.foundry_api_key,  # allow either
         )
 
         self.default_test_catalog = (

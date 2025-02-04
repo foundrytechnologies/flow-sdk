@@ -14,10 +14,15 @@ If you are using Flow, please send a quick note to **contact@mlfoundry.com** so 
 
 ## Quick-Start
 
+1. **Authentication via Environment Variables:**  
+   Configure Foundry authentication variables which will be pulled in via the settings in `src/flow/config/base_settings.py`:
 
-1. Configure Foundry environment variables, which will be pulled in via the model in src/flow/config/base_settings.py:
+   **Option 1 (Recommended): API Key**  
+     - `export FOUNDRY_API_KEY='your_api_key'`  (Found in FCP Console → Settings → API Keys tab)
 
-  **Authentication (choose one option):**
+   **Option 2: Email/Password**  
+     - `export FOUNDRY_EMAIL='your_email@example.com'`  
+     - `export FOUNDRY_PASSWORD='your_password'`
 
    - Option 1 (Recommended): API Key
 
@@ -31,10 +36,10 @@ If you are using Flow, please send a quick note to **contact@mlfoundry.com** so 
 2. Get familiary with the flow_example.yaml file, which contains a comprehensive example of a Foundry task definition via the CLI. 
 
 3. Submit an example task using flow_example.yaml:
-   » flow submit flow_example.yaml
+   » `flow submit flow_example.yaml --project-name your_project_name --ssh-key-name your_ssh_key_name)`
 
 4. Check the status of your submitted task:
-   » flow status
+   » `flow status --project-name your_project_name --ssh-key-name your_ssh_key_name`
 
 Note, we have yet to tune the CLI to be more ergonomic and stylish. More work to do on the UI. Placeholder UI logic is in the 'formatters' folder.
 
@@ -86,7 +91,14 @@ Foundry **tasks** are defined by the following attributes:
 name: flow-sdk-batch-task-example
 
 # -------------------------------------------------------------------------
-# [2] Foundry Task Management
+# [2] Authentication Parameters
+# -------------------------------------------------------------------------
+# Specify the relevant Foundry project name and SSH key name.
+project_name: my-foundry-project
+ssh_key_name: my-ssh-key
+
+# -------------------------------------------------------------------------
+# [3] Foundry Task Management
 # -------------------------------------------------------------------------
 # Parameters for how Foundry schedules, prices, and manages this task.
 task_management:
@@ -97,7 +109,7 @@ task_management:
   # Defines a shorthand for setting a utility price threshold.
   # Foundry uses these utility thresholds to optimize global utility across all tasks.
   # Valid options: [critical, high, standard, low].
-  # If not specified, defaults to 'standard' or the configured default in the 'flow_config' file.
+  # If not specified, defaults to 'standard' or the configured default in the 'flow_config' file
   # Set values in the 'flow_config' file to override defaults.
   priority: low  # Example for lower priority 'batch' tasks
 
@@ -105,14 +117,13 @@ task_management:
   # 2.2 Explicit Utility Threshold Price (Optional)
   # -----------------------------------------------------------------------
   # A direct per-GPU limit price (spot_bid). If left out, Foundry calculates
-  # the spot_bid based on the 'priority' field above.
-  # Note, Foundry utility maximization is based on a second price auction,
-  # so users aren't charged their stated utility price but rather a guaranteed lower rate.
+  # the spot_bid based on the 'priority' field above. 
+  # Note, Foundry utility maximization is based on a second price auction, so users aren't charged their utility price but rather a guaranteed lower rate.
   # Thus, users can set the utility threshold price to their 'true utility threshold'.
-  utility_threshold_price: 17.92  # Example low priority custom price for a batch task with 8 H100 GPUs
+  utility_threshold_price: 17.92 # Example low priority custom price for a batch task, 2.24/GPU/hour for H100 SXM5
 
 # -------------------------------------------------------------------------
-# [3] Resource Configuration
+# [4] Resource Configuration
 # -------------------------------------------------------------------------
 # Specify the compute resources needed for the task.
 resources_specification:
@@ -131,16 +142,17 @@ resources_specification:
   # Increase for tasks that need multi-instance processing in an all-or-nothing
   # configuration (e.g., distributed training).
   num_instances: 1
+  num_gpus: 8 
 
   # -----------------------------------------------------------------------
   # 3.3 Cluster ID (Optional)
   # -----------------------------------------------------------------------
   # Restrict task placement to a specific cluster or region if needed.
-  # Uncomment and set the cluster_id to choose a region (e.g., "us-central1-b").
-  # cluster_id: us-central1-b
+  # Uncomment and set the cluster_id to choose a region (e.g., "us-central1").
+  cluster_id: us-central1-b  # Where H100 SXM5 instances are available
 
 # -------------------------------------------------------------------------
-# [4] Ports to Expose (Optional)
+# [5] Ports to Expose (Optional)
 # -------------------------------------------------------------------------
 # Define which ports or port ranges to expose for external access, such as for
 # Jupyter or TensorBoard. You can specify single ports (e.g., "8080"), ranges
@@ -157,7 +169,7 @@ ports:
     internal: 8003-8005
 
 # -------------------------------------------------------------------------
-# [5] Storage Configuration (Optional)
+# [6] Storage Configuration (Optional)
 # -------------------------------------------------------------------------
 # Configure persistent storage volumes to be mounted on the task instance.
 # This is particularly useful for sharing data, storing checkpoints, or
@@ -186,7 +198,7 @@ persistent_storage:
   #   mount_point: /mnt/existing-volume
 
 # -------------------------------------------------------------------------
-# [6] Startup Script (Optional)
+# [7] Startup Script (Optional)
 # -------------------------------------------------------------------------
 # Provide commands that will execute upon instance initialization, enabling
 # you to install dependencies or run initial setup tasks automatically.
@@ -197,7 +209,7 @@ startup_script: |
   echo "Setup complete."
 
 # -------------------------------------------------------------------------
-# [7] Versioning
+# [8] Versioning
 # -------------------------------------------------------------------------
 # Indicates the format version of this configuration file.
 version: 1

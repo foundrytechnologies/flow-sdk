@@ -1,4 +1,4 @@
-name: flow-task-config-example-test-705
+name: flow-task-config-example-test-test-444
 persistent_storage:
   create:
     disk_interface: Block
@@ -7,7 +7,7 @@ persistent_storage:
     size: 1
     size_unit: gb
     storage_type: block
-    volume_name: testdisk-20250204131851-22a5
+    volume_name: testdisk-20250204140402-45h3
 ports:
 - 8080
 - 6006-6010
@@ -17,6 +17,7 @@ ports:
   internal: 8002
 - external: 8443-8445
   internal: 8003-8005
+project_name: my-foundry-project
 resources_specification:
   cluster_id: us-central1-b
   fcp_instance: h100.8x.SXM5.IB
@@ -26,6 +27,7 @@ resources_specification:
   intranode_interconnect: SXM5
   num_gpus: 8
   num_instances: 1
+ssh_key_name: my-ssh-key
 startup_script: '#!/bin/bash
 
   echo "Starting setup..."

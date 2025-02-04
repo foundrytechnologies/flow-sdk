@@ -80,6 +80,14 @@ def parse_arguments() -> argparse.Namespace:
         default=0,
         help="Increase output verbosity (use multiple times for more detail).",
     )
+    parser.add_argument(
+        "--project-name",
+        help="Foundry project name (if not supplied, you will be prompted or loaded from config).",
+    )
+    parser.add_argument(
+        "--ssh-key-name",
+        help="Foundry SSH key name (if not supplied, you will be prompted or loaded from config).",
+    )
     return parser.parse_args()
 
 
@@ -101,19 +109,61 @@ def initialize_foundry_client() -> FoundryClient:
     return foundry_client
 
 
+def resolve_project_and_ssh_key(
+    cli_project_name: Optional[str],
+    cli_ssh_key_name: Optional[str],
+    config_parser: Optional[ConfigParser],
+) -> tuple[str, str]:
+    """
+    Resolves the Foundry project name and SSH key name by:
+      1) Checking CLI flags (--project-name, --ssh-key-name),
+      2) Falling back to config file (if config_parser is provided and has those fields),
+      3) Finally, prompting the user if still not set.
+
+    Returns:
+        (project_name, ssh_key_name): Both as non-empty strings.
+    Raises:
+        SystemExit: If the user cannot provide valid values interactively.
+    """
+    project_name = cli_project_name
+    ssh_key_name = cli_ssh_key_name
+
+    # 1) If we have a config_parser, we can try to read config from config file
+    if config_parser is not None and config_parser.config is not None:
+        config_model = config_parser.config
+        # Check if the config file also has project_name or ssh_key_name
+        if not project_name and getattr(config_model, "project_name", None):
+            project_name = config_model.project_name
+        if not ssh_key_name and getattr(config_model, "ssh_key_name", None):
+            ssh_key_name = config_model.ssh_key_name
+
+    # 2) If either is still missing, prompt the user for them
+    if not project_name:
+        project_name = input("Please provide your Foundry project name: ").strip()
+    if not ssh_key_name:
+        ssh_key_name = input("Please provide your Foundry SSH key name: ").strip()
+
+    # 3) Validate that both exist now
+    if not project_name:
+        logging.getLogger(__name__).error("No valid project name was provided.")
+        sys.exit(1)
+    if not ssh_key_name:
+        logging.getLogger(__name__).error("No valid SSH key name was provided.")
+        sys.exit(1)
+
+    return project_name, ssh_key_name
+
+
 def run_submit_command(
     config_file: str,
     foundry_client: FoundryClient,
     auction_finder: AuctionFinder,
     bid_manager: BidManager,
+    cli_project_name: Optional[str],
+    cli_ssh_key_name: Optional[str],
 ) -> None:
-    """Handle the 'submit' command workflow.
-
-    Args:
-        config_file (str): Path to the user-provided configuration file.
-        foundry_client (FoundryClient): Client for Foundry interactions.
-        auction_finder (AuctionFinder): Auction finder manager.
-        bid_manager (BidManager): Bid manager.
+    """
+    Handle the 'submit' command workflow.
     """
     logger = logging.getLogger(__name__)
 
@@ -125,12 +175,21 @@ def run_submit_command(
     config_parser = ConfigParser(config_file)
     logger.info("Configuration parsed successfully.")
 
+    # Resolve final project + ssh key from CLI and config
+    project_name, ssh_key_name = resolve_project_and_ssh_key(
+        cli_project_name=cli_project_name,
+        cli_ssh_key_name=cli_ssh_key_name,
+        config_parser=config_parser,
+    )
+
     # Initialize the task manager.
     task_manager = FlowTaskManager(
         config_parser=config_parser,
         foundry_client=foundry_client,
         auction_finder=auction_finder,
         bid_manager=bid_manager,
+        project_name=project_name,
+        ssh_key_name=ssh_key_name,
     )
 
     logger.info("Running the flow task manager.")
@@ -143,24 +202,32 @@ def run_status_command(
     foundry_client: FoundryClient,
     auction_finder: AuctionFinder,
     bid_manager: BidManager,
+    cli_project_name: Optional[str],
+    cli_ssh_key_name: Optional[str],
+    config_file: Optional[str] = None,
 ) -> None:
-    """Handle the 'status' command workflow.
-
-    Args:
-        task_name (Optional[str]): The name of the task to filter on.
-        show_all (bool): Whether to show entries with missing data.
-        foundry_client (FoundryClient): Client for Foundry interactions.
-        auction_finder (AuctionFinder): Auction finder manager.
-        bid_manager (BidManager): Bid manager.
-    """
     logger = logging.getLogger(__name__)
     logger.info("Checking status for tasks.")
 
+    # If config_file is provided, parse it
+    config_parser = None
+    if config_file:
+        config_parser = ConfigParser(config_file)
+
+    # Merge logic
+    project_name, ssh_key_name = resolve_project_and_ssh_key(
+        cli_project_name=cli_project_name,
+        cli_ssh_key_name=cli_ssh_key_name,
+        config_parser=config_parser,
+    )
+
     task_manager = FlowTaskManager(
-        config_parser=None,
+        config_parser=config_parser,  # Might be None if no config_file
         foundry_client=foundry_client,
         auction_finder=auction_finder,
         bid_manager=bid_manager,
+        project_name=project_name,
+        ssh_key_name=ssh_key_name,
     )
     task_manager.check_status(task_name=task_name, show_all=show_all)
 
@@ -170,15 +237,10 @@ def run_cancel_command(
     foundry_client: FoundryClient,
     auction_finder: AuctionFinder,
     bid_manager: BidManager,
+    cli_project_name: Optional[str],
+    cli_ssh_key_name: Optional[str],
+    config_file: Optional[str] = None,
 ) -> None:
-    """Handle the 'cancel' command workflow.
-
-    Args:
-        task_name (Optional[str]): The name of the task to cancel.
-        foundry_client (FoundryClient): Client for Foundry interactions.
-        auction_finder (AuctionFinder): Auction finder manager.
-        bid_manager (BidManager): Bid manager.
-    """
     logger = logging.getLogger(__name__)
 
     if not task_name:
@@ -186,11 +248,25 @@ def run_cancel_command(
         sys.exit(1)
 
     logger.info("Attempting to cancel task: %s", task_name)
+
+    config_parser = None
+    if config_file:
+        config_parser = ConfigParser(config_file)
+
+    # Merge logic
+    project_name, ssh_key_name = resolve_project_and_ssh_key(
+        cli_project_name=cli_project_name,
+        cli_ssh_key_name=cli_ssh_key_name,
+        config_parser=config_parser,
+    )
+
     task_manager = FlowTaskManager(
-        config_parser=None,
+        config_parser=config_parser,
         foundry_client=foundry_client,
         auction_finder=auction_finder,
         bid_manager=bid_manager,
+        project_name=project_name,
+        ssh_key_name=ssh_key_name,
     )
     task_manager.cancel_bid(name=task_name)
     logger.info("Task '%s' has been canceled successfully.", task_name)
@@ -208,34 +284,33 @@ def main() -> int:
         args = parse_arguments()
         configure_logging(args.verbose)
         logger = logging.getLogger(__name__)
-        # Create the spinner logger and a handler for sub-steps
-        spinner_logger = SpinnerLogger(
-            logger=logger
-        )  # Attach to the main logger or any logger
+        spinner_logger = SpinnerLogger(logger=logger)
 
-        config_parser_logger = logging.getLogger("flow.task_config")
-        config_parser_handler = spinner_logger.create_log_handler(level=logging.INFO)
-        config_parser_logger.addHandler(config_parser_handler)
+        if not args.project_name:
+            args.project_name = input(
+                "Please provide your Foundry project name: "
+            ).strip()
+        if not args.ssh_key_name:
+            args.ssh_key_name = input(
+                "Please provide your Foundry SSH key name: "
+            ).strip()
 
         with spinner_logger.spinner(
             "Initializing foundry client...", enable_sub_steps=True
         ):
-            foundry_client = (
-                initialize_foundry_client()
-            )  # logs will appear as sub-steps
-            # Initialize managers
+            foundry_client = initialize_foundry_client()
             auction_finder = AuctionFinder(foundry_client=foundry_client)
             bid_manager = BidManager(foundry_client=foundry_client)
-        # Command dispatch
+
         if args.command == "submit":
             with spinner_logger.spinner("", enable_sub_steps=True):
-                # Inside this spinner context, logs from 'flow.task_config'
-                # or the same logger we attached will appear as sub-steps
                 run_submit_command(
                     config_file=args.config_file,
                     foundry_client=foundry_client,
                     auction_finder=auction_finder,
                     bid_manager=bid_manager,
+                    cli_project_name=args.project_name,
+                    cli_ssh_key_name=args.ssh_key_name,
                 )
         elif args.command == "status":
             with spinner_logger.spinner("Checking status...", enable_sub_steps=True):
@@ -245,6 +320,9 @@ def main() -> int:
                     foundry_client=foundry_client,
                     auction_finder=auction_finder,
                     bid_manager=bid_manager,
+                    cli_project_name=args.project_name,
+                    cli_ssh_key_name=args.ssh_key_name,
+                    config_file=args.config_file,
                 )
         elif args.command == "cancel":
             with spinner_logger.spinner("Canceling task...", enable_sub_steps=True):
@@ -253,6 +331,9 @@ def main() -> int:
                     foundry_client=foundry_client,
                     auction_finder=auction_finder,
                     bid_manager=bid_manager,
+                    cli_project_name=args.project_name,
+                    cli_ssh_key_name=args.ssh_key_name,
+                    config_file=args.config_file,
                 )
 
     except KeyboardInterrupt:

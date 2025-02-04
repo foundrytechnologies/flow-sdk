@@ -30,8 +30,12 @@ class FoundryBaseSettings(BaseSettings):
         default=None, alias="FOUNDRY_PASSWORD"
     )
     foundry_api_key: Optional[str] = Field(default=None, alias="FOUNDRY_API_KEY")
-    foundry_project_name: Optional[str] = Field(default=None, alias="FOUNDRY_PROJECT_NAME")
-    foundry_ssh_key_name: Optional[str] = Field(default=None, alias="FOUNDRY_SSH_KEY_NAME")
+    foundry_project_name: Optional[str] = Field(
+        default=None, alias="FOUNDRY_PROJECT_NAME"
+    )
+    foundry_ssh_key_name: Optional[str] = Field(
+        default=None, alias="FOUNDRY_SSH_KEY_NAME"
+    )
 
     # Constant mapping for priority pricing.
     PRIORITY_PRICE_MAPPING: Dict[str, float] = Field(

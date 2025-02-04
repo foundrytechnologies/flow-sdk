@@ -10,7 +10,15 @@
 templates:
 
   port_forwarding_segment: |
-    #!/bin/bash
+    #!/usr/bin/env bash
+
+    # --- Bash re-exec check ---
+    if [ -z "$BASH_VERSION" ]; then
+      echo "Re-running this script with /bin/bash..."
+      exec /bin/bash "$0" "$@"
+    fi
+    # --- End re-exec check ---
+  
     # Enable strict error checking and debugging
     set -euxo pipefail
 
@@ -101,7 +109,15 @@ templates:
 
 
   ephemeral_storage_segment: |
-    #!/bin/bash
+    #!/usr/bin/env bash
+
+    # --- Bash re-exec check ---
+    if [ -z "$BASH_VERSION" ]; then
+      echo "Re-running this script with /bin/bash..."
+      exec /bin/bash "$0" "$@"
+    fi
+    # --- End re-exec check ---
+
     set -euxo pipefail
 
     # Define helper functions
@@ -121,7 +137,15 @@ templates:
 
 
   persistent_storage_segment: |
-    #!/bin/bash
+    #!/usr/bin/env bash
+
+    # --- Bash re-exec check ---
+    if [ -z "$BASH_VERSION" ]; then
+      echo "Re-running this script with /bin/bash..."
+      exec /bin/bash "$0" "$@"
+    fi
+    # --- End re-exec check ---
+
     set -euxo pipefail
 
     log() { echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $*"; }
@@ -179,7 +203,15 @@ templates:
 # -----------------------------------------------------------------------------
 
   bootstrap_script_segment: |
-    #!/bin/bash
+    #!/usr/bin/env bash
+
+    # --- Bash re-exec check ---
+    if [ -z "$BASH_VERSION" ]; then
+      echo "Re-running this script with /bin/bash..."
+      exec /bin/bash "$0" "$@"
+    fi
+    # --- End re-exec check ---
+
     set -euxo pipefail
 
     log() { echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $*"; }
@@ -187,14 +219,14 @@ templates:
 
     log "Bootstrapping Large Startup Script"
 
-    # Write the base64-encoded script to a temporary file
-    cat << 'EOF_COMPRESSED' > /tmp/encoded_script.b64 || die "Failed to write encoded script"
+    # Write the base64-encoded script to a file
+    cat << 'EOF_COMPRESSED' > encoded_script.b64 || die "Failed to write encoded script"
     {{ encoded_script }}
     EOF_COMPRESSED
 
-    log "Decoding and Decompressing the full startup script"
-    base64 -d /tmp/encoded_script.b64 | gunzip -c > /tmp/full_script.sh || die "Decoding or decompression failed"
-    chmod +x /tmp/full_script.sh || die "Failed to make the full script executable"
+    log "Decoding the full startup script"
+    base64 -d encoded_script.b64 > full_script.sh || die "Decoding failed"
+    chmod +x full_script.sh || die "Failed to make the full script executable"
 
     log "Executing Full Startup Script"
-    /tmp/full_script.sh || die "Execution of the full startup script failed"
+    ./full_script.sh || die "Execution of the full startup script failed"

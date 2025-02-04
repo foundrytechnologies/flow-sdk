@@ -63,9 +63,17 @@ class BidSubmissionError(Exception):
 class FlowTaskManager:
     """Manages the execution of tasks within the Flow system.
 
-    This class reads configuration from a ConfigParser, constructs a startup script
-    (which may include ephemeral/persistent storage configuration and port forwarding),
-    compresses it if needed, and then prepares and submits a bid via Foundry.
+    This class reads configuration from a ConfigParser, builds the startup script,
+    prepares bid details, and submits the bid to Foundry. It requires the Foundry project name
+    and SSH key name to be provided (via CLI, config, or interactive prompt).
+
+    Attributes:
+        config_parser (Optional[ConfigParser]): The configuration parser instance.
+        foundry_client (FoundryClient): Client for interacting with Foundry.
+        auction_finder (Optional[AuctionFinder]): Auction finder instance.
+        bid_manager (Optional[BidManager]): Bid manager instance.
+        project_name (str): Foundry project name.
+        ssh_key_name (str): Foundry SSH key name.
     """
 
     def __init__(
@@ -80,31 +88,28 @@ class FlowTaskManager:
         """Initializes the FlowTaskManager.
 
         Args:
-            config_parser: A ConfigParser instance with user-defined settings.
-            foundry_client: A FoundryClient instance for Foundry API interactions.
-            auction_finder: An AuctionFinder instance for retrieving auctions from Foundry.
-            bid_manager: A BidManager instance for preparing and submitting bids.
-            project_name: The Foundry project name.
-            ssh_key_name: The Foundry SSH key name.
+            config_parser (Optional[ConfigParser]): Instance with user-defined settings.
+            foundry_client (FoundryClient): A client for Foundry API operations.
+            auction_finder (Optional[AuctionFinder]): Finder for locating suitable auctions.
+            bid_manager (Optional[BidManager]): Prepares and submits bids.
+            project_name (str): Foundry project name.
+            ssh_key_name (str): Foundry SSH key name.
         """
-        self.config_parser: Optional[ConfigParser] = config_parser
-        self.foundry_client: FoundryClient = foundry_client
-        self.auction_finder: Optional[AuctionFinder] = auction_finder
-        self.bid_manager: Optional[BidManager] = bid_manager
+        self.config_parser = config_parser
+        self.foundry_client = foundry_client
+        self.auction_finder = auction_finder
+        self.bid_manager = bid_manager
+        self.project_name = project_name
+        self.ssh_key_name = ssh_key_name
 
-        self.project_name: str = project_name
-        self.ssh_key_name: str = ssh_key_name
-
-        self.logger: logging.Logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
         self.logger.debug("Initialized FlowTaskManager instance.")
 
-        self.instance_manager: InstanceManager = InstanceManager(
-            foundry_client=self.foundry_client
-        )
-        self.storage_manager: StorageManager = StorageManager(self.foundry_client)
+        self.instance_manager = InstanceManager(foundry_client=self.foundry_client)
+        self.storage_manager = StorageManager(foundry_client=self.foundry_client)
         self.logger.debug("StorageManager initialized.")
 
-        self.logger_manager: SpinnerLogger = SpinnerLogger(self.logger)
+        self.logger_manager = SpinnerLogger(self.logger)
 
     # =========================================================================
     # Public API Methods

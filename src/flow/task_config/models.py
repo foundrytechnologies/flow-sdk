@@ -528,6 +528,8 @@ class ConfigModel(BaseModel):
         networking: Networking settings.
         resources: Resource allocations.
         startup_script: Script to run on startup.
+        project_name: Foundry project name.
+        ssh_key_name: Foundry SSH key name.
     """
 
     name: str
@@ -541,6 +543,8 @@ class ConfigModel(BaseModel):
     resources: Optional[Resources] = None
     startup_script: Optional[str] = None
     container_image: Optional[ContainerImageConfig] = None
+    project_name: Optional[str] = None
+    ssh_key_name: Optional[str] = None
 
     @field_validator("ports", mode="before")
     def validate_ports(cls, ports_value: Any) -> List[Dict[str, Any]]:

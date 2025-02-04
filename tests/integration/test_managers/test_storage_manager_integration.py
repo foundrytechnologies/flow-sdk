@@ -96,7 +96,7 @@ def project_id(foundry_client: FoundryClient) -> str:
     if not project_name:
         pytest.skip(
             "Project name not set. export FOUNDRY_PROJECT_NAME='your_project_name'"
-            )
+        )
     projects = foundry_client.get_projects()
     for project in projects:
         if project.name == project_name:

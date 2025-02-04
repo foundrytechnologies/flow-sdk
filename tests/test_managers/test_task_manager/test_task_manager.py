@@ -332,9 +332,7 @@ class TestFlowTaskManager(unittest.TestCase):
         mock_get_projects.return_value = [
             Project(id="proj-123", name="TestProject", created_ts=None)
         ]
-        mock_get_ssh_keys.return_value = [
-            SshKey(id="key-123", name="MySSHKey")
-        ]
+        mock_get_ssh_keys.return_value = [SshKey(id="key-123", name="MySSHKey")]
 
         user_id, project_id, ssh_key_id = (
             self.task_manager._authenticate_and_get_user_data()

@@ -53,14 +53,20 @@ class TestFCPClientIntegration(unittest.TestCase):
             missing_vars: List[str] = []
             if not (config.foundry_email and config.foundry_email.strip()):
                 missing_vars.append("FOUNDRY_EMAIL")
-            if not (config.foundry_password and config.foundry_password.get_secret_value().strip()):
+            if not (
+                config.foundry_password
+                and config.foundry_password.get_secret_value().strip()
+            ):
                 missing_vars.append("FOUNDRY_PASSWORD")
             if missing_vars:
                 raise unittest.SkipTest(
                     f"Missing environment variables for integration tests: {missing_vars}"
                 )
             # Using email/password for authentication
-            authenticator = Authenticator(email=config.foundry_email, password=config.foundry_password.get_secret_value())
+            authenticator = Authenticator(
+                email=config.foundry_email,
+                password=config.foundry_password.get_secret_value(),
+            )
 
         cls.client: FCPClient = FCPClient(authenticator=authenticator)
 
@@ -70,7 +76,6 @@ class TestFCPClientIntegration(unittest.TestCase):
             )
         except ValueError as err:
             raise unittest.SkipTest(str(err))
-
 
     def test_get_user(self) -> None:
         """Test fetching the current user with valid credentials."""
