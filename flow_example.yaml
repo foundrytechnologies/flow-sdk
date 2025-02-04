@@ -10,7 +10,7 @@
 # -------------------------------------------------------------------------
 # A human-readable, descriptive name for this task. Appears in Foundry UIs.
 # NOTE, FCP's current API requires that names be unique
-name: flow-task-config-example-test
+name: flow-task-config-example
 
 # -------------------------------------------------------------------------
 # [2] Authentication Parameters
