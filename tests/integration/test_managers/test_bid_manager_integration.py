@@ -49,6 +49,7 @@ class TestBidManagerIntegration(unittest.TestCase):
         self.foundry_client = FoundryClient(
             email=settings.foundry_email,
             password=settings.foundry_password.get_secret_value(),
+            api_key=settings.foundry_api_key,
         )
         self.storage_client = self.foundry_client.storage_client
         self.bid_manager = BidManager(foundry_client=self.foundry_client)

@@ -52,7 +52,10 @@ class FoundryClientTest(unittest.TestCase):
         # Initialize FoundryClient
         self.email = "test@example.com"
         self.password = "password"
-        self.foundry_client = FoundryClient(self.email, self.password)
+        self.api_key = None
+        self.foundry_client = FoundryClient(
+            email=self.email, password=self.password, api_key=self.api_key
+        )
 
     def test_initialization(self) -> None:
         """Tests that FoundryClient initializes Authenticator, FCPClient, and StorageClient."""

@@ -5,6 +5,8 @@ authentication, request execution with retry strategies, JSON parsing, and Pydan
 It also provides methods for interacting with resources such as users, projects, instances,
 auctions, bids, and SSH keys.
 
+This client supports authentication via either an API key or via email and password.
+
 Example:
     from flow.clients.fcp_client import FCPClient
     from flow.clients.authenticator import Authenticator
@@ -494,10 +496,11 @@ class BidService:
         except APIError as err:
             # If the bid is not found, treat it as already canceled.
             if "Bid not found" in str(err):
-                self._logger.warning(
-                    "Bid %s not found during cancellation; it may have already been canceled.",
+                self._logger.info(
+                    "Bid %s not found during cancellation; treating as already canceled.",
                     bid_id,
                 )
+                return
             else:
                 raise
 

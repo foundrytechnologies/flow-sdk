@@ -74,6 +74,8 @@ class FlowTaskManager:
         foundry_client: FoundryClient,
         auction_finder: Optional[AuctionFinder],
         bid_manager: Optional[BidManager],
+        project_name: str,
+        ssh_key_name: str,
     ) -> None:
         """Initializes the FlowTaskManager.
 
@@ -82,11 +84,16 @@ class FlowTaskManager:
             foundry_client: A FoundryClient instance for Foundry API interactions.
             auction_finder: An AuctionFinder instance for retrieving auctions from Foundry.
             bid_manager: A BidManager instance for preparing and submitting bids.
+            project_name: The Foundry project name.
+            ssh_key_name: The Foundry SSH key name.
         """
         self.config_parser: Optional[ConfigParser] = config_parser
         self.foundry_client: FoundryClient = foundry_client
         self.auction_finder: Optional[AuctionFinder] = auction_finder
         self.bid_manager: Optional[BidManager] = bid_manager
+
+        self.project_name: str = project_name
+        self.ssh_key_name: str = ssh_key_name
 
         self.logger: logging.Logger = logging.getLogger(__name__)
         self.logger.debug("Initialized FlowTaskManager instance.")
@@ -388,12 +395,12 @@ class FlowTaskManager:
         user_id: str = user.id
         projects: List[Project] = self.foundry_client.get_projects()
         project_id: str = self.select_project_id(
-            projects=projects, project_name=_SETTINGS.foundry_project_name
+            projects=projects, project_name=self.project_name
         )
 
         ssh_keys: List[SshKey] = self.foundry_client.get_ssh_keys(project_id=project_id)
         ssh_key_id: str = self.select_ssh_key_id(
-            ssh_keys=ssh_keys, ssh_key_name=_SETTINGS.foundry_ssh_key_name
+            ssh_keys=ssh_keys, ssh_key_name=self.ssh_key_name
         )
 
         return user_id, project_id, ssh_key_id

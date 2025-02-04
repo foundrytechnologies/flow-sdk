@@ -5,10 +5,12 @@ with the Foundry Cloud Platform (FCP). It encapsulates operations for managing
 projects, instances, bids, storage resources, and more, providing a unified API
 for use in downstream environments.
 
+This client supports authentication via either an API key (using FOUNDRY_API_KEY) 
+or via email and password.
 """
 
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from flow.clients.authenticator import Authenticator
 from flow.clients.fcp_client import FCPClient
@@ -44,25 +46,36 @@ class FoundryClient:
         projects = client.get_projects()
     """
 
-    def __init__(self, email: str, password: str) -> None:
-        """Initialize the FoundryClient with user credentials.
+    def __init__(
+        self,
+        email: Optional[str] = None,
+        password: Optional[str] = None,
+        api_key: Optional[str] = None,
+    ) -> None:
+        """Initialize the FoundryClient with either an API key or email/password.
 
         Args:
-            email (str): The email address of the user.
-            password (str): The user's password.
+            email (Optional[str]): The user's email.
+            password (Optional[str]): The user's password.
+            api_key (Optional[str]): The user's API key (if using API key auth).
         """
         self._logger = logging.getLogger(__name__)
-        self._logger.debug("Initializing FoundryClient with email=%s", email)
+        self._logger.debug("Initializing FoundryClient with credentials.")
 
-        self._authenticator: Authenticator = Authenticator(
-            email=email, password=password
-        )
+        # Deciding whether to use API key or email/password
+        if api_key:
+            self._authenticator: Authenticator = Authenticator(api_key=api_key)
+        else:
+            # Fallback to email/password
+            if not email or not password:
+                raise ValueError("Either api_key or email/password must be provided.")
+            self._authenticator = Authenticator(email=email, password=password)
+
         self.fcp_client: FCPClient = FCPClient(authenticator=self._authenticator)
         self.storage_client: StorageClient = StorageClient(
             authenticator=self._authenticator
         )
-
-        self._logger.info("FoundryClient initialized successfully")
+        self._logger.info("FoundryClient initialized successfully.")
 
     # =========================================================================
     #                           FCPClient Methods

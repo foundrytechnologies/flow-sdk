@@ -45,8 +45,9 @@ class Authenticator:
 
     def __init__(
         self,
-        email: str,
-        password: str,
+        email: Optional[str] = None,
+        password: Optional[str] = None,
+        api_key: Optional[str] = None,
         api_url: Optional[str] = None,
         request_timeout: int = 10,
         max_retries: int = 3,
@@ -54,8 +55,9 @@ class Authenticator:
         """Initializes the Authenticator and performs immediate authentication.
 
         Args:
-            email (str): The user's email address.
-            password (str): The user's password.
+            email (Optional[str]): The user's email address.
+            password (Optional[str]): The user's password.
+            api_key (Optional[str]): The user's API key.
             api_url (Optional[str]): The base URL for the authentication API.
                 Defaults to the value of the environment variable 'API_URL' or
                 'https://api.mlfoundry.com' if not provided.
@@ -69,28 +71,32 @@ class Authenticator:
             ValueError: If either email or password is empty.
             AuthenticationError: If authentication fails.
         """
-        # Validate input types.
-        if not isinstance(email, str):
-            raise TypeError("Email must be a string.")
-        if not isinstance(password, str):
-            raise TypeError("Password must be a string.")
+        # If an api_key is not provided, validate that email and password are provided.
+        if api_key is None:
+            if not isinstance(email, str):
+                raise TypeError("Email must be a string.")
+            if not isinstance(password, str):
+                raise TypeError("Password must be a string.")
+            if not email:
+                raise ValueError("Email must not be empty.")
+            if not password:
+                raise ValueError("Password must not be empty.")
 
-        # Validate non-empty credentials.
-        if not email:
-            raise ValueError("Email must not be empty.")
-        if not password:
-            raise ValueError("Password must not be empty.")
-
-        self.email: str = email
-        self.password: str = password
+        self.email: Optional[str] = email
+        self.password: Optional[str] = password
+        self.api_key: Optional[str] = api_key
         self.api_url: str = api_url or os.getenv("API_URL", "https://api.mlfoundry.com")
         self.request_timeout: int = request_timeout
 
         # Create a configured HTTP session with a retry strategy.
         self.session: requests.Session = self._create_session(max_retries)
 
-        # Immediately authenticate to retrieve the access token.
-        self.access_token: str = self.authenticate()
+        # If an api_key is provided, use it as the access token;
+        # otherwise, perform authentication using email and password.
+        if api_key:
+            self.access_token: str = api_key
+        else:
+            self.access_token: str = self.authenticate()
 
     def _create_session(self, max_retries: int) -> requests.Session:
         """Creates and configures an HTTP session with retry behavior.

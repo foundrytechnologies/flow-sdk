@@ -64,8 +64,8 @@ pytestmark = pytest.mark.skipif(
         [
             settings.foundry_email,
             bool(settings.foundry_password.get_secret_value().strip()),
-            settings.foundry_project_name,
-            settings.foundry_ssh_key_name,
+            settings.PROJECT_NAME,
+            settings.SSH_KEY_NAME,
         ]
     ),
     reason="Skipping FlowTaskManagerIntegration tests due to missing required Foundry environment variables.",
@@ -103,10 +103,10 @@ class TestFlowTaskManager(unittest.TestCase):
             email="fake@example.com",
         )
         self.foundry_client.get_projects.return_value = [
-            Project(id="proj-123", name=settings.foundry_project_name, created_ts=None)
+            Project(id="proj-123", name="TestProject", created_ts=None)
         ]
         self.foundry_client.get_ssh_keys.return_value = [
-            SshKey(id="key-123", name=settings.foundry_ssh_key_name)
+            SshKey(id="key-123", name="MySSHKey")
         ]
 
         # Mock the authenticator
@@ -129,6 +129,8 @@ class TestFlowTaskManager(unittest.TestCase):
             foundry_client=self.foundry_client,
             auction_finder=self.auction_finder,
             bid_manager=self.bid_manager,
+            project_name="TestProject",
+            ssh_key_name="MySSHKey",
         )
 
         # Mock create_disk return value
@@ -328,10 +330,10 @@ class TestFlowTaskManager(unittest.TestCase):
             email="fake@example.com",
         )
         mock_get_projects.return_value = [
-            Project(id="proj-123", name=settings.foundry_project_name, created_ts=None)
+            Project(id="proj-123", name="TestProject", created_ts=None)
         ]
         mock_get_ssh_keys.return_value = [
-            SshKey(id="key-123", name=settings.foundry_ssh_key_name)
+            SshKey(id="key-123", name="MySSHKey")
         ]
 
         user_id, project_id, ssh_key_id = (

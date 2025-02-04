@@ -341,5 +341,83 @@ class TestPerformance(AuthenticatorTestBase):
         self.assertLess(memory_increase, 10 * 1024)
 
 
+class TestApiKeyAuthentication(AuthenticatorTestBase):
+    """Tests for authentication using an API key.
+
+    This test suite verifies that the Authenticator class correctly handles
+    API key authentication by giving precedence over email/password credentials,
+    and by falling back to credential-based authentication when no API key is provided.
+    """
+
+    @responses.activate
+    def test_successful_api_key_authentication(self) -> None:
+        """Test that providing only an API key sets it as the access token without any HTTP calls.
+
+        Ensures that an API key bypasses any network-based authentication.
+        """
+        api_key: str = "test_api_key_123"
+        authenticator = Authenticator(api_key=api_key, api_url=self.api_url)
+        self.assertEqual(authenticator.get_access_token(), api_key)
+        self.assertEqual(len(responses.calls), 0)
+
+    @responses.activate
+    def test_api_key_takes_precedence_over_credentials(self) -> None:
+        """Test that an API key takes precedence over email/password credentials.
+
+        When both authentication methods are provided, the API key should be used
+        and no network authentication request should be issued.
+        """
+        api_key: str = "test_api_key_456"
+        authenticator = Authenticator(
+            email=self.email,
+            password=self.password,
+            api_key=api_key,
+            api_url=self.api_url,
+        )
+        self.assertEqual(authenticator.get_access_token(), api_key)
+        self.assertEqual(len(responses.calls), 0)
+
+    @responses.activate
+    def test_api_key_without_credentials(self) -> None:
+        """Test that API key authentication works even when email and password are omitted.
+
+        Validates that solely providing an API key is sufficient for authentication.
+        """
+        api_key: str = "test_api_key_789"
+        authenticator = Authenticator(api_key=api_key, api_url=self.api_url)
+        self.assertEqual(authenticator.get_access_token(), api_key)
+        self.assertEqual(len(responses.calls), 0)
+
+    @responses.activate
+    def test_missing_both_api_key_and_credentials(self) -> None:
+        """Test that an error is raised if neither an API key nor credentials are provided.
+
+        Expects a TypeError when no authentication method is supplied.
+        """
+        with self.assertRaises(TypeError):
+            Authenticator(api_url=self.api_url)
+
+    @responses.activate
+    def test_fallback_to_credentials_when_no_api_key(self) -> None:
+        """Test that credential-based authentication is used when the API key is explicitly set to None.
+
+        Verifies that the fallback logic triggers an HTTP call to retrieve an access token.
+        """
+        responses.add(
+            responses.POST,
+            self.auth_url,
+            json={"access_token": "test_token"},
+            status=200,
+        )
+        authenticator = Authenticator(
+            email=self.email,
+            password=self.password,
+            api_key=None,
+            api_url=self.api_url,
+        )
+        self.assertEqual(authenticator.get_access_token(), "test_token")
+        self.assertEqual(len(responses.calls), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

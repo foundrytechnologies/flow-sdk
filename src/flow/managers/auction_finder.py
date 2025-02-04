@@ -293,7 +293,7 @@ class AuctionFinder:
 
         Args:
             project_id: Optional Foundry project ID for fetching auctions.
-            local_catalog_path: Optional file path to a static YAML auction catalog.
+            local_catalog_path: Optional file path to override the catalog path set in __init__.
 
         Returns:
             A list of Auction objects with possible enrichment from catalog data.
@@ -302,6 +302,13 @@ class AuctionFinder:
             ValueError: if both project_id and local_catalog_path are absent.
             AuctionCatalogError: if there is an error loading the local catalog.
         """
+        # Determine effective catalog path prioritizing method parameter over instance value.
+        effective_catalog_path: Optional[Path] = (
+            Path(local_catalog_path)
+            if local_catalog_path is not None
+            else self.local_catalog_path
+        )
+
         auctions_from_foundry: List[Auction] = []
         auctions_from_local: List[Auction] = []
 
@@ -316,21 +323,18 @@ class AuctionFinder:
                 "Foundry returned %d auctions.", len(auctions_from_foundry)
             )
 
-        # If a local catalog path is provided as an argument, use it;
-        # otherwise check for the default local catalog.
-        if local_catalog_path is not None:
+        # Check for catalog in this order: provided catalog (method or constructor) > default catalog path.
+        if effective_catalog_path is not None:
             self._logger.info(
-                "Loading auctions from local catalog at '%s'.", local_catalog_path
+                "Loading auctions from catalog path='%s'.", effective_catalog_path
             )
             auctions_from_local = self._load_auctions_from_local_catalog(
-                catalog_path=local_catalog_path
+                catalog_path=str(effective_catalog_path)
             )
-            self._logger.info(
-                "Local catalog has %d auctions.", len(auctions_from_local)
-            )
+            self._logger.info("Catalog has %d auctions.", len(auctions_from_local))
         elif self.default_local_catalog_path.exists():
             self._logger.info(
-                "Loading auctions from default local catalog at '%s'.",
+                "Loading auctions from default catalog at '%s'.",
                 self.default_local_catalog_path,
             )
             auctions_from_local = self._load_auctions_from_local_catalog(
@@ -340,9 +344,9 @@ class AuctionFinder:
                 "Default catalog has %d auctions.", len(auctions_from_local)
             )
         else:
-            self._logger.info("No local catalog provided.")
+            self._logger.info("No local catalog available.")
 
-        # If both sources provide data, merge the auctions.
+        # Return enriched auctions if both sources have data.
         if auctions_from_foundry and auctions_from_local:
             return self._enrich_auctions_with_catalog_data(
                 foundry_auctions=auctions_from_foundry,

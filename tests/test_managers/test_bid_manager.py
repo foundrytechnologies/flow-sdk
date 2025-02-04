@@ -23,8 +23,8 @@ pytestmark = pytest.mark.skipif(
         [
             settings.foundry_email,
             bool(settings.foundry_password.get_secret_value().strip()),
-            settings.foundry_project_name,
-            settings.foundry_ssh_key_name,
+            settings.PROJECT_NAME,
+            settings.SSH_KEY_NAME,
         ]
     ),
     reason="Skipping BidManager tests due to missing required environment variables.",

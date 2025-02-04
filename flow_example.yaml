@@ -48,7 +48,7 @@ resources_specification:
   # -----------------------------------------------------------------------
   # The name of the GPU instance type. Adjust according to your project's
   # performance requirements or availability in a given Foundry cluster.
-  fcp_instance: h100.8x.SXM5.IB  # Canonical format from create_canonical_fcp_label() in catalogue_manager.py
+  fcp_instance: a100.1x.SXM4.IB
 
   # -----------------------------------------------------------------------
   # 3.2 Number of Instances

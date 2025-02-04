@@ -4,19 +4,29 @@ NOTE: Flow is currently in preview. This git repo is under active development an
 If you are using Flow, please send a quick note to **contact@mlfoundry.com** so we can keep you updated on the latest changes. 
 
 ## Installation
+
 1. Ensure you have Python 3.11 or higher installed.  
 2. Install dependencies either by:  
    - Using pdm (preferred):  
      » pdm install  
    - Or manually with pip:  
-     » pip install -r requirements.txt  
+     » pip install -r requirements.txt
 
 ## Quick-Start
+
+
 1. Configure Foundry environment variables, which will be pulled in via the model in src/flow/config/base_settings.py:
-   - export FOUNDRY_EMAIL='your_email@example.com'  
-   - export FOUNDRY_PASSWORD='your_password'  
-   - export FOUNDRY_PROJECT_NAME='your_project_name'  
-   - export FOUNDRY_SSH_KEY_NAME='your_ssh_key_name'
+
+  **Authentication (choose one option):**
+
+   - Option 1 (Recommended): API Key
+
+     - export FOUNDRY_API_KEY='your_api_key' # Found in FCP Console → Settings → API Keys tab
+
+   - Option 2: Email/Password
+     - export FOUNDRY_EMAIL='your_email@example.com'
+     - export FOUNDRY_PASSWORD='your_password'
+
 
 2. Get familiary with the flow_example.yaml file, which contains a comprehensive example of a Foundry task definition via the CLI. 
 
@@ -26,7 +36,7 @@ If you are using Flow, please send a quick note to **contact@mlfoundry.com** so 
 4. Check the status of your submitted task:
    » flow status
 
-Note, we have yet to tune the CLI to be more ergonomic and stylish. More work to do on the UI. Placeholder UI logic is in the 'formatters' folder. 
+Note, we have yet to tune the CLI to be more ergonomic and stylish. More work to do on the UI. Placeholder UI logic is in the 'formatters' folder.
 
 5. Look through and experiment with the flow_sdk_quickstart.ipynb file, which contains an interactive notebookquickstart guide to using the Foundry SDK.
 

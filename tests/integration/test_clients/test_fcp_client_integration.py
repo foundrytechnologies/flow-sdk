@@ -44,33 +44,33 @@ class TestFCPClientIntegration(unittest.TestCase):
     def setUpClass(cls) -> None:
         """Initialize an FCPClient if environment configuration is present; skip otherwise."""
         config = get_config()
-        missing_vars: List[str] = []
-        if not config.foundry_email:
-            missing_vars.append("FOUNDRY_EMAIL")
-        if not config.foundry_password.get_secret_value():
-            missing_vars.append("FOUNDRY_PASSWORD")
-        if not config.foundry_project_name:
-            missing_vars.append("FOUNDRY_PROJECT_NAME")
-        if not config.foundry_ssh_key_name:
-            missing_vars.append("FOUNDRY_SSH_KEY_NAME")
 
-        if missing_vars:
-            raise unittest.SkipTest(
-                f"Missing environment variables for integration tests: {missing_vars}"
-            )
+        # Use API key if available, otherwise fall back to email/password authentication.
+        if config.foundry_api_key and config.foundry_api_key.strip():
+            # Using API key for authentication
+            authenticator = Authenticator(api_key=config.foundry_api_key)
+        else:
+            missing_vars: List[str] = []
+            if not (config.foundry_email and config.foundry_email.strip()):
+                missing_vars.append("FOUNDRY_EMAIL")
+            if not (config.foundry_password and config.foundry_password.get_secret_value().strip()):
+                missing_vars.append("FOUNDRY_PASSWORD")
+            if missing_vars:
+                raise unittest.SkipTest(
+                    f"Missing environment variables for integration tests: {missing_vars}"
+                )
+            # Using email/password for authentication
+            authenticator = Authenticator(email=config.foundry_email, password=config.foundry_password.get_secret_value())
 
-        authenticator: Authenticator = Authenticator(
-            email=config.foundry_email,
-            password=config.foundry_password.get_secret_value(),
-        )
         cls.client: FCPClient = FCPClient(authenticator=authenticator)
 
         try:
             cls.project: Project = cls.client.get_project_by_name(
-                config.foundry_project_name
+                project_name=config.foundry_project_name
             )
         except ValueError as err:
             raise unittest.SkipTest(str(err))
+
 
     def test_get_user(self) -> None:
         """Test fetching the current user with valid credentials."""

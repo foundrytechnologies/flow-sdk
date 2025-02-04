@@ -20,7 +20,7 @@ import pytest
 from unittest.mock import MagicMock
 
 from flow.task_config import PersistentStorage
-from flow.config.flow_config import EMAIL, PASSWORD, PROJECT_NAME
+from flow.config.flow_config import EMAIL, PASSWORD, PROJECT_NAME, API_KEY
 from flow.managers.storage_manager import StorageManager
 from flow.clients.foundry_client import FoundryClient
 from flow.models import DiskAttachment
@@ -48,10 +48,11 @@ def foundry_client() -> FoundryClient:
     """
     email = os.getenv(_ENV_EMAIL, EMAIL)
     password = os.getenv(_ENV_PASSWORD, PASSWORD)
-    if not email or not password:
-        pytest.skip("Environment variables for authentication are not set.")
+    api_key = os.getenv("FOUNDRY_API_KEY", API_KEY)
+    if not email and not api_key:
+        pytest.skip("No credentials for FoundryClient.")
     try:
-        client = FoundryClient(email=email, password=password)
+        client = FoundryClient(email=email, password=password, api_key=api_key)
         # Provide region data that tests & auctions expect:
         client.get_regions = MagicMock(
             return_value=[
@@ -93,7 +94,9 @@ def project_id(foundry_client: FoundryClient) -> str:
     """
     project_name = os.getenv(_ENV_PROJECT_NAME, PROJECT_NAME)
     if not project_name:
-        pytest.skip("Project name environment variable not set.")
+        pytest.skip(
+            "Project name not set. export FOUNDRY_PROJECT_NAME='your_project_name'"
+            )
     projects = foundry_client.get_projects()
     for project in projects:
         if project.name == project_name:

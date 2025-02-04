@@ -236,9 +236,11 @@ class TestFCPClient(unittest.TestCase):
         duplicate_resp = MagicMock(spec=Response)
         duplicate_resp.status_code = 400
         duplicate_resp.ok = False
-        duplicate_resp.text = "Bid already exists"
+        duplicate_resp.text = "order named DupeBid already exists"
         duplicate_resp.headers = {"Content-Type": "application/json"}
-        duplicate_resp.json.return_value = {"error": "Bid already exists"}
+        duplicate_resp.json.return_value = {
+            "error": "order named DupeBid already exists"
+        }
         self.mock_session_instance.request.return_value = duplicate_resp
 
         bid_payload = BidPayload(

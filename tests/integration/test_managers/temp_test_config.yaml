@@ -1,4 +1,4 @@
-name: flow-sdk-task-config-test-156
+name: flow-task-config-example-test-705
 persistent_storage:
   create:
     disk_interface: Block
@@ -7,7 +7,7 @@ persistent_storage:
     size: 1
     size_unit: gb
     storage_type: block
-    volume_name: testdisk-20250202185918-o97t
+    volume_name: testdisk-20250204131851-22a5
 ports:
 - 8080
 - 6006-6010
