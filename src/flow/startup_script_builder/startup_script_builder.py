@@ -316,6 +316,7 @@ class StartupScriptBuilder:
             return
 
         self.logger.debug("Using mount_points: %s", mount_points)
+        # Pass the 'owner' variable from the environment (defaulting to 'root')
         segment_builder = JinjaTemplateSegmentBuilder(
             template_str=self.templates[template_key],
             template_context={"mount_points": mount_points},
@@ -406,13 +407,20 @@ class StartupScriptBuilder:
             raise TemplateKeyNotFoundError(error_msg)
 
         self.logger.debug("Compressing and encoding the full startup script.")
-        with BytesIO() as compressed_io:
-            with gzip.GzipFile(fileobj=compressed_io, mode="wb") as gz_file:
-                gz_file.write(full_script.encode("utf-8"))
-            compressed_data = compressed_io.getvalue()
+        try:
+            with BytesIO() as compressed_io:
+                with gzip.GzipFile(fileobj=compressed_io, mode="wb") as gz_file:
+                    gz_file.write(full_script.encode("utf-8"))
+                compressed_data = compressed_io.getvalue()
+        except Exception as e:
+            error_msg = f"Failed to compress the full startup script: {e}"
+            self.logger.error(error_msg)
+            raise StartupScriptBuilderError(error_msg) from e
 
         encoded_script = base64.b64encode(compressed_data).decode("utf-8")
-        self.logger.debug("Full script compressed and base64-encoded.")
+        if not encoded_script:
+            raise StartupScriptBuilderError("Encoded script is empty after compression.")
+        self.logger.debug("Full script compressed and base64-encoded. Encoded script length: %d", len(encoded_script))
 
         segment_builder = JinjaTemplateSegmentBuilder(
             template_str=self.templates[template_key],

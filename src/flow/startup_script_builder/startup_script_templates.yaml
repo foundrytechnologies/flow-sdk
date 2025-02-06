@@ -22,6 +22,11 @@ templates:
     # Enable strict error checking and debugging
     set -euxo pipefail
 
+    # Ensure required commands are available
+    for cmd in dpkg apt-get systemctl openssl sed; do
+      command -v "$cmd" >/dev/null 2>&1 || die "Required command '$cmd' not found. Please install it."
+    done
+
     # Helper function for logging with timestamp
     log() { echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $*"; }
     die() { log "ERROR: $*"; exit 1; }
@@ -53,7 +58,7 @@ templates:
 
     {% for (external_port, internal_port) in port_mappings %}
     log "Setting up foundrypf for external port {{ external_port }} => internal port {{ internal_port }}"
-    sudo bash -c "cat <<EOF > /etc/systemd/system/foundrypf_{{ internal_port }}.service
+    sudo bash -c "cat <<-'EOF' > /etc/systemd/system/foundrypf_{{ internal_port }}.service
     [Unit]
     Description=Foundry Port Forwarding Service for port {{ internal_port }}
     After=network.target
@@ -75,7 +80,7 @@ templates:
     sudo systemctl start foundrypf_{{ internal_port }}.service || die "Starting foundrypf_{{ internal_port }}.service failed"
 
     log "Creating Nginx config for external port {{ external_port }} => internal port {{ internal_port }}"
-    sudo bash -c "cat <<EOF > /etc/nginx/sites-available/port_{{ external_port }}_ssl
+    sudo bash -c "cat <<-'EOF' > /etc/nginx/sites-available/port_{{ external_port }}_ssl
     server {
         listen {{ external_port }} ssl;
         listen [::]:{{ external_port }} ssl;
@@ -102,6 +107,7 @@ templates:
     {% if port_mappings %}
     log "Testing Nginx config"
     sudo nginx -t || die "Nginx config test failed"
+    log "Nginx config test passed"
 
     log "Restarting Nginx to apply port forwarding changes"
     sudo systemctl restart nginx || die "Nginx restart failed"
@@ -120,21 +126,55 @@ templates:
 
     set -euxo pipefail
 
-    # Define helper functions
+    # Ensure required commands are available
+    for cmd in mkdir blkid mkfs.ext4 mount mountpoint chown grep tee; do
+      command -v "$cmd" >/dev/null 2>&1 || die "Required command '$cmd' not found. Please install it."
+    done
+
+    # Helper functions
     log() { echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $*"; }
     die() { log "ERROR: $*"; exit 1; }
 
     log "Configuring Ephemeral Storage"
     {% for src, dst in ephemeral_mounts.items() %}
-    log "Mounting ephemeral block device '{{ src }}' at '{{ dst }}'"
-    sudo mkdir -p "{{ dst }}" || die "Failed to create mount directory {{ dst }}"
-    sudo mkfs.ext4 -F "{{ src }}" || die "Failed to format device {{ src }}"
-    sudo mount "{{ src }}" "{{ dst }}" || die "Failed to mount {{ src }} to {{ dst }}"
-    sudo chown -R $USER:$USER "{{ dst }}" || log "Warning: could not change ownership for {{ dst }}"
-    log "Mounted ephemeral block device '{{ src }}' to '{{ dst }}'"
-    {% endfor %}
-    # End of ephemeral storage configuration.
+    log "Processing ephemeral device '{{ src }}' => mount point '{{ dst }}'"
 
+    # Create the destination directory if it doesn't exist
+    sudo mkdir -p "{{ dst }}" || die "Failed to create directory {{ dst }}"
+
+    # Verify that the source is a valid block device
+    if [ ! -b "{{ src }}" ]; then
+      die "Ephemeral device '{{ src }}' is not a valid block device or does not exist"
+    fi
+
+    # Check if the device has a filesystem
+    if ! sudo blkid "{{ src }}" >/dev/null 2>&1; then
+      log "No filesystem detected on '{{ src }}'; formatting with ext4..."
+      sudo mkfs.ext4 -F "{{ src }}" || die "Failed to format device {{ src }}"
+    else
+      log "Filesystem already exists on '{{ src }}'; skipping format"
+    fi
+
+    # Check if already mounted
+    if mountpoint -q "{{ dst }}"; then
+      log "'{{ dst }}' is already mounted; skipping mount"
+    else
+      log "Mounting '{{ src }}' at '{{ dst }}'"
+      sudo mount "{{ src }}" "{{ dst }}" || die "Failed to mount {{ src }} on {{ dst }}"
+
+      # --- NOTE: (Default, but optional) Auto-Mount on Reboot ---
+      UUID=$(sudo blkid -s UUID -o value "{{ src }}" || die "Failed to retrieve UUID for '{{ src }}'")
+      if ! grep -q "UUID=$UUID" /etc/fstab; then
+          log "Adding ephemeral device '{{ src }}' to /etc/fstab for mount point '{{ dst }}'"
+          echo "UUID=$UUID {{ dst }} ext4 defaults,nofail,discard 0 2" | sudo tee -a /etc/fstab >/dev/null
+      fi
+    fi
+
+    log "Changing ownership of '{{ dst }}' to $USER"
+    sudo chown -R $USER:$USER "{{ dst }}" || log "Warning: could not change ownership for {{ dst }}"
+
+    log "Ephemeral mount complete: '{{ src }}' => '{{ dst }}'"
+    {% endfor %}
 
   persistent_storage_segment: |
     #!/usr/bin/env bash
@@ -148,38 +188,83 @@ templates:
 
     set -euxo pipefail
 
+    # Ensure required commands are available
+    for cmd in lsblk mkfs.ext4 mount chown grep tee; do
+      command -v "$cmd" >/dev/null 2>&1 || die "Required command '$cmd' not found. Please install it."
+    done
+
     log() { echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $*"; }
     die() { log "ERROR: $*"; exit 1; }
 
     log "Configuring Persistent Storage"
+    # Enumerate disk devices.
     DISK_DEVS=($(lsblk -dpno NAME,TYPE | grep 'disk' | awk '{print $1}'))
     log "Disk devices found: ${DISK_DEVS[@]}"
 
     MOUNT_POINTS=({{ mount_points | join(' ') }})
 
-    if [ "${#DISK_DEVS[@]}" -ne "${#MOUNT_POINTS[@]}" ]; then
-        die "The number of disks (${#DISK_DEVS[@]}) does not match the number of mount points (${#MOUNT_POINTS[@]})."
+    if [ ${#DISK_DEVS[@]} -lt ${#MOUNT_POINTS[@]} ]; then
+        die "Found only ${#DISK_DEVS[@]} disk(s) for the ${#MOUNT_POINTS[@]} mount point(s) provided."
+    elif [ ${#DISK_DEVS[@]} -gt ${#MOUNT_POINTS[@]} ]; then
+        log "Warning: More disk devices found than mount points provided. Only the first ${#MOUNT_POINTS[@]} disk(s) will be used."
+        DISK_DEVS=("${DISK_DEVS[@]:0:${#MOUNT_POINTS[@]}}")
     fi
 
     for i in "${!DISK_DEVS[@]}"; do
         dev="${DISK_DEVS[$i]}"
         mp="${MOUNT_POINTS[$i]}"
-        log "Formatting and mounting $dev at $mp"
-        sudo mkdir -p "$mp" || die "Failed to create mount point $mp"
-        sudo mkfs.ext4 -F "$dev" || die "Failed to format device $dev"
-        sudo mount "$dev" "$mp" || die "Failed to mount $dev at $mp"
-        sudo chown -R $USER:$USER "$mp" || log "Warning: failed changing ownership at $mp"
-        UUID=$(sudo blkid -s UUID -o value "$dev")
-        echo "UUID=$UUID $mp ext4 defaults 0 2" | sudo tee -a /etc/fstab || \
-          log "Warning: failed to update /etc/fstab for $dev"
+
+        log "Processing disk '$dev' for mount point '$mp'"
+
+        # Ensure mount directory exists
+        sudo mkdir -p "$mp" || die "Failed to create directory '$mp'"
+
+        # Check if disk has a filesystem
+        if ! sudo blkid "$dev" >/dev/null 2>&1; then
+            log "No filesystem detected on '$dev'; formatting with ext4..."
+            sudo mkfs.ext4 -F "$dev" || die "Failed to format '$dev'"
+        else
+            log "Filesystem already exists on '$dev'; skipping format"
+        fi
+
+        # Check if already mounted
+        if mountpoint -q "$mp"; then
+            log "'$mp' is already mounted; skipping mount"
+        else
+            log "Mounting '$dev' on '$mp'"
+            sudo mount "$dev" "$mp" || die "Failed to mount '$dev' on '$mp'"
+            log "Successfully mounted '$dev' on '$mp'"
+        fi
+
+        sudo chown -R $USER:$USER "$mp" || log "Warning: could not change ownership for '$mp'"
+
+        # Update /etc/fstab if missing
+        UUID=$(sudo blkid -s UUID -o value "$dev" || die "Failed to retrieve UUID for '$dev'")
+        if ! grep -q "UUID=$UUID" /etc/fstab; then
+            log "Adding 'UUID=$UUID $mp ext4 defaults 0 2' to /etc/fstab"
+            echo "UUID=$UUID $mp ext4 defaults 0 2" | sudo tee -a /etc/fstab >/dev/null
+        else
+            log "fstab already contains UUID=$UUID; skipping"
+        fi
+
+        log "Finished processing persistent disk '$dev' => '$mp'"
     done
 
   container_image_segment: |
+    # Ensure required commands are available
+    for cmd in apt-get docker systemctl; do
+      command -v "$cmd" >/dev/null 2>&1 || { echo "Required command '$cmd' not found. Please install it."; exit 1; }
+    done
+
     echo "=== Setting Up Our Docker Environment ==="
-    sudo apt-get update
-    sudo apt-get install -y docker.io
-    sudo systemctl start docker
-    sudo systemctl enable docker
+    if ! command -v docker >/dev/null 2>&1; then
+      echo "Docker not found; installing Docker..."
+      sudo apt-get update && sudo apt-get install -y docker.io
+      sudo systemctl start docker
+      sudo systemctl enable docker
+    else
+      echo "Docker is already installed."
+    fi
 
     echo "=== Processing Container Image ==="
     {% if build_context %}
@@ -204,29 +289,43 @@ templates:
 
   bootstrap_script_segment: |
     #!/usr/bin/env bash
-
+  
     # --- Bash re-exec check ---
     if [ -z "$BASH_VERSION" ]; then
       echo "Re-running this script with /bin/bash..."
       exec /bin/bash "$0" "$@"
     fi
     # --- End re-exec check ---
-
+  
     set -euxo pipefail
-
+  
+    # Verify that required commands are available
+    command -v base64 >/dev/null 2>&1 || { echo "base64 command not found" >&2; exit 1; }
+    command -v gunzip >/dev/null 2>&1 || { echo "gunzip command not found" >&2; exit 1; }
+    command -v mktemp >/dev/null 2>&1 || { echo "mktemp command not found" >&2; exit 1; }
+    
     log() { echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $*"; }
     die() { log "ERROR: $*"; exit 1; }
-
+  
     log "Bootstrapping Large Startup Script"
-
-    # Write the base64-encoded script to a file
+  
+    # Write the base64-encoded, gzipped script to a file (gzipped in )
     cat << 'EOF_COMPRESSED' > encoded_script.b64 || die "Failed to write encoded script"
     {{ encoded_script }}
     EOF_COMPRESSED
+  
+    log "Decoding and verifying the encoded script"
+    tmpfile=$(mktemp /tmp/full_script.XXXXXX) || die "Failed to create temporary file"
+    base64 -d encoded_script.b64 > "$tmpfile" || { rm -f "$tmpfile"; die "Base64 decoding failed"; }
 
-    log "Decoding the full startup script"
-    base64 -d encoded_script.b64 > full_script.sh || die "Decoding failed"
+    log "Verifying gzip integrity of the decoded script"
+    gunzip -t "$tmpfile" || { rm -f "$tmpfile"; die "Gzip integrity check failed"; }
+    
+    log "Decompressing the full startup script"
+    gunzip -c "$tmpfile" > full_script.sh || { rm -f "$tmpfile"; die "Failed to decompress the full startup script"; }
+    rm -f "$tmpfile"
+
     chmod +x full_script.sh || die "Failed to make the full script executable"
-
+  
     log "Executing Full Startup Script"
     ./full_script.sh || die "Execution of the full startup script failed"
