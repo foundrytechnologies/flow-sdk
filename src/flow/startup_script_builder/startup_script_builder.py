@@ -419,8 +419,13 @@ class StartupScriptBuilder:
 
         encoded_script = base64.b64encode(compressed_data).decode("utf-8")
         if not encoded_script:
-            raise StartupScriptBuilderError("Encoded script is empty after compression.")
-        self.logger.debug("Full script compressed and base64-encoded. Encoded script length: %d", len(encoded_script))
+            raise StartupScriptBuilderError(
+                "Encoded script is empty after compression."
+            )
+        self.logger.debug(
+            "Full script compressed and base64-encoded. Encoded script length: %d",
+            len(encoded_script),
+        )
 
         segment_builder = JinjaTemplateSegmentBuilder(
             template_str=self.templates[template_key],
